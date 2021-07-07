@@ -1,0 +1,38 @@
+<form class="form-horizontal form-complex">
+<div class="control-group">
+	<label class="control-label" for="mq_publish_message_account">Select Queue Manager Account <span class="required">*</span> </label>
+    <div class="controls">
+		<splunk-search-dropdown name="action.mq_publish_message.param.account" id="mq_publish_message_account" value-field="title" label-field="title" search="| rest /servicesNS/nobody/TA-dhl-mq/admin/ta_dhl_mq_account | dedup title"/>
+                <span class="help-block"> 
+                    Select the Queue Manager account from the dropdown
+                </span>
+    </div>
+</div>
+<div class="control-group">
+	<label class="control-label" for="mq_publish_message_mqchannel">MQ Channel <span class="required">*</span> </label>
+    <div class="controls">
+	<input type="text" name="action.mq_publish_message.param.mqchannel" id="mq_publish_message_mqchannel"/>
+                <span class="help-block"> 
+                    Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$
+                </span>
+    </div>
+</div>
+<div class="control-group">
+	<label class="control-label" for="mq_publish_message_mqqueuedest">Queue name destination <span class="required">*</span> </label>
+    <div class="controls">
+	<input type="text" name="action.mq_publish_message.param.mqqueuedest" id="mq_publish_message_mqqueuedest"/>
+                <span class="help-block"> 
+                    Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.dest_queue$
+                </span>
+    </div>
+</div>
+<div class="control-group">
+	<label class="control-label" for="mq_publish_message_mqmsgfield">Message field name <span class="required">*</span> </label>
+    <div class="controls">
+	<input type="text" name="action.mq_publish_message.param.mqmsgfield" id="mq_publish_message_mqmsgfield"/>
+                <span class="help-block"> 
+                    The name of field containing the message to be published, if the field is called myfield, enter: myfield
+                </span>
+    </div>
+</div>
+</form>

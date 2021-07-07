@@ -1,0 +1,288 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "account",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Auth Type",
+                                "field": "auth_type"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of ID should be between 1 and 50",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "field": "name",
+                            "help": "Enter a unique name for this Queue Manager account.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Queue Manager address",
+                            "help": "Enter the address for this Queue Manager.",
+                            "field": "mqhost",
+                            "options": {
+                                "display": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Queue Manager port",
+                            "help": "Enter the port number for this Queue Manager.",
+                            "field": "mqport",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "1414"
+                        },
+                        {
+                            "type": "oauth",
+                            "field": "oauth",
+                            "label": "Not used",
+                            "options": {
+                                "auth_type": [
+                                    "basic",
+                                    "oauth"
+                                ],
+                                "basic": [
+                                    {
+                                        "oauth_field": "username",
+                                        "label": "Username",
+                                        "help": "Enter the username for this account.",
+                                        "field": "username"
+                                    },
+                                    {
+                                        "oauth_field": "password",
+                                        "label": "Password",
+                                        "encrypted": true,
+                                        "help": "Enter the password for this account.",
+                                        "field": "password"
+                                    }
+                                ],
+                                "oauth": [
+                                    {
+                                        "oauth_field": "client_id",
+                                        "label": "Client Id",
+                                        "field": "client_id",
+                                        "help": "Enter the Client Id for this account."
+                                    },
+                                    {
+                                        "oauth_field": "client_secret",
+                                        "label": "Client Secret",
+                                        "field": "client_secret",
+                                        "encrypted": true,
+                                        "help": "Enter the Client Secret key for this account."
+                                    },
+                                    {
+                                        "oauth_field": "redirect_url",
+                                        "label": "Redirect url",
+                                        "field": "redirect_url",
+                                        "help": "Copy and paste this URL into your app."
+                                    }
+                                ],
+                                "auth_code_endpoint": "/services/oauth2/authorize",
+                                "access_token_endpoint": "/services/oauth2/token",
+                                "oauth_timeout": 30,
+                                "oauth_state_enabled": false
+                            }
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Enable SSL/TLS",
+                            "field": "mqssl",
+                            "defaultValue": "no",
+                            "help": "Define if this Queue Manager uses SSL/TLS or not",
+                            "required": true,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "SSL/TLS cipher spec",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "TLS_RSA_WITH_AES_256_CBC_SHA",
+                                        "label": "TLS_RSA_WITH_AES_256_CBC_SHA"
+                                    }
+                                ],
+                                "display": true
+                            },
+                            "help": "(required for SSL only) If using SSL/TLS, specify the SSL cipher spec",
+                            "field": "ssl_cipher_spec",
+                            "defaultValue": "TLS_RSA_WITH_AES_256_CBC_SHA",
+                            "required": false
+                        },
+                        {
+                            "type": "text",
+                            "label": "SSL key repo location",
+                            "help": "(required for SSL only) If using SSl/TLS, specify the local path to the key repo location.",
+                            "field": "key_repo_location",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "/var/mqm/ssl-db/client/KeyringClient"
+                        }
+                    ],
+                    "title": "MQ Queue Manager Account"
+                },
+                {
+                    "name": "logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel"
+                        }
+                    ],
+                    "title": "Logging"
+                }
+            ],
+            "title": "Configuration",
+            "description": "Configure the MQ DHL MQ-Addon"
+        }
+    },
+    "alerts": [
+        {
+            "name": "mq_publish_message",
+            "label": "Publish a message to an MQ channel",
+            "description": "This alert action allows publishing messages to an MQ channel",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Information Conveyance",
+                    "Information Portrayal"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "1.0.0"
+                        ],
+                        "product": "IBM MQ",
+                        "vendor": "Splunk"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
+                "sourcetype": "mq:alert_action:publish_message"
+            },
+            "entity": [
+                {
+                    "type": "singleSelectSplunkSearch",
+                    "label": "Select Queue Manager Account",
+                    "field": "account",
+                    "search": "| rest /servicesNS/nobody/TA-dhl-mq/admin/ta_dhl_mq_account | dedup title",
+                    "valueField": "title",
+                    "labelField": "title",
+                    "help": "Select the Queue Manager account from the dropdown",
+                    "required": true
+                },
+                {
+                    "type": "text",
+                    "label": "MQ Channel",
+                    "field": "mqchannel",
+                    "defaultValue": "",
+                    "required": true,
+                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
+                },
+                {
+                    "type": "text",
+                    "label": "Queue name destination",
+                    "field": "mqqueuedest",
+                    "defaultValue": "",
+                    "required": true,
+                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.dest_queue$"
+                },
+                {
+                    "type": "text",
+                    "label": "Message field name",
+                    "field": "mqmsgfield",
+                    "defaultValue": "message",
+                    "required": true,
+                    "help": "The name of field containing the message to be published, if the field is called myfield, enter: myfield"
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "apiVersion": "3.2.0",
+        "name": "TA-dhl-mq",
+        "restRoot": "ta_dhl_mq",
+        "version": "0.0.0RNone",
+        "displayName": "DHL Add-on for DHL",
+        "schemaVersion": "0.0.2"
+    }
+}
