@@ -1,4 +1,5 @@
 [<name>]
+mqmanager = 
 mqhost = 
 mqport = 
 mqssl = 

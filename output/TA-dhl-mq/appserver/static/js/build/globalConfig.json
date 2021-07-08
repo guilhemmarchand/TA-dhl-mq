@@ -47,6 +47,16 @@
                         },
                         {
                             "type": "text",
+                            "label": "Queue Manager name",
+                            "help": "Enter the name of the Queue Manager.",
+                            "field": "mqmanager",
+                            "options": {
+                                "display": true
+                            },
+                            "required": true
+                        },
+                        {
+                            "type": "text",
                             "label": "Queue Manager address",
                             "help": "Enter the address for this Queue Manager.",
                             "field": "mqhost",
@@ -281,7 +291,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0RNone",
+        "version": "0.0.0Rcd2226f",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }
