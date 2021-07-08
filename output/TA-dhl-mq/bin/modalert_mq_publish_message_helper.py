@@ -1,6 +1,21 @@
 
 # encoding = utf-8
 
+# This function is required to prevent any failure due to content which we have no control on
+def checkstr(i):
+
+    if i is not None:
+        i = i.replace("\\", "\\\\")
+        # Manage line breaks
+        i = i.replace("\n", "\\n")
+        i = i.replace("\r", "\\r")
+        # Manage tabs
+        i = i.replace("\t", "\\t")
+        # Manage breaking delimiters
+        i = i.replace("\"", "\\\"")
+        i = i.replace("\'", "\\\'")
+        return i
+
 def process_event(helper, *args, **kwargs):
     """
     # IMPORTANT
@@ -106,6 +121,14 @@ def process_event(helper, *args, **kwargs):
     key_repo_location = account_details.get("key_repo_location", 0)
     helper.log_debug("key_repo_location={}".format(key_repo_location))
 
+    # Get python_bin_path
+    python_bin_path = helper.get_global_setting("python_bin_path")
+    helper.log_info("python_bin_path={}".format(python_bin_path))
+
+    # Get mqclient_bin_path
+    mqclient_bin_path = helper.get_global_setting("mqclient_bin_path")
+    helper.log_info("mqclient_bin_path={}".format(mqclient_bin_path))
+
     #
     # Alert params
     #
@@ -152,6 +175,7 @@ def process_event(helper, *args, **kwargs):
     #helper.log_debug("output={}".format(output))
 
     # Loop within events and proceed
+
     events = helper.get_events()
     for event in events:
         helper.log_debug("event={}".format(event))
@@ -160,7 +184,7 @@ def process_event(helper, *args, **kwargs):
         msgpayload = "null"
         for key, value in event.items():
             if key in str(mqmsgfield):
-                msgpayload = value
+                msgpayload = checkstr(value)
         helper.log_debug("msgpayload:={}".format(msgpayload))
 
         # publish
@@ -173,7 +197,7 @@ def process_event(helper, *args, **kwargs):
             # generate a random uuid to name the batch
             uuid = uuid.uuid4()
 
-            # calculate the lenght of the message to be published
+            # calculate the length of the message to be published
             msgpayload_len = len(str(msgpayload))
 
             # Generate Shell and Python batch files
@@ -181,16 +205,18 @@ def process_event(helper, *args, **kwargs):
             pybatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.py"
 
             shellcontent = '#!/bin/bash\n' +\
-            'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/mqm/lib64\n' +\
+            'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:' + str(mqclient_bin_path) + '/lib64\n' +\
             'unset PYTHONPATH\n' +\
-            '/usr/bin/python3 ' + str(pybatchname) + '\n'
+            str(python_bin_path) + ' ' + str(pybatchname) + '\n'
+
+            helper.log_debug("shellcontent:={}".format(shellcontent))
 
             with open(str(shellbatchname), 'w') as f:
                 f.write(shellcontent)
             os.chmod(str(shellbatchname), 0o740)
 
             # Generate the Py wrapper
-            pyatchcontent = 'import os\n' +\
+            pybatchcontent = 'import os\n' +\
             'import sys\n' +\
                 'import pymqi\n' +\
                 'queue_manager = \'' + str(mqmanager) + '\'\n' +\
@@ -198,7 +224,7 @@ def process_event(helper, *args, **kwargs):
                 'host = \'' + str(mqhost) + '\'\n' +\
                 'port = \'' + str(mqport) + '\'\n' +\
                 'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
-                'message = \'' + str(msgpayload) + '\'\n' +\
+                'message = \'' + str(checkstr(msgpayload)) + '\'\n' +\
                 'conn_info = \'%s(%s)\' % (host, port)\n' +\
                 'try:\n' +\
                 '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
@@ -212,8 +238,10 @@ def process_event(helper, *args, **kwargs):
                 '   print("Exception: " + str(e))\n' +\
                 '   sys.exit(0)\n'
 
+            helper.log_debug("pybatchcontent:={}".format(pybatchcontent))
+
             with open(str(pybatchname), 'w') as f:
-                f.write(pyatchcontent)
+                f.write(pybatchcontent)
 
             # Execute the Shell batch now
             output = subprocess.check_output([str(shellbatchname), str(pybatchname)],universal_newlines=True)
@@ -228,7 +256,7 @@ def process_event(helper, *args, **kwargs):
             if "Success" in str(output):
                 logmsg = "message publication success, queue_manager=" + str(mqmanager) \
                 + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                + ", message_lenght=" + str(msgpayload_len)
+                + ", message_length=" + str(msgpayload_len)
                 helper.log_info(logmsg)
             else:
                 logmsg = "failure in message publication with exception: " + str(output)

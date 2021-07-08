@@ -26,10 +26,30 @@ fields_logging = [
 model_logging = RestModel(fields_logging, name='logging')
 
 
+fields_advanced_configuration = [
+    field.RestField(
+        'python_bin_path',
+        required=True,
+        encrypted=False,
+        default='/usr/bin/python3',
+        validator=None
+    ), 
+    field.RestField(
+        'mqclient_bin_path',
+        required=True,
+        encrypted=False,
+        default='/opt/mqm',
+        validator=None
+    )
+]
+model_advanced_configuration = RestModel(fields_advanced_configuration, name='advanced_configuration')
+
+
 endpoint = MultipleModel(
     'ta_dhl_mq_settings',
     models=[
-        model_logging
+        model_logging, 
+        model_advanced_configuration
     ],
 )
 

@@ -80,9 +80,11 @@
                             "label": "Not used",
                             "options": {
                                 "auth_type": [
+                                    "noauth",
                                     "basic",
                                     "oauth"
                                 ],
+                                "noauth": [],
                                 "basic": [
                                     {
                                         "oauth_field": "username",
@@ -123,7 +125,8 @@
                                 "access_token_endpoint": "/services/oauth2/token",
                                 "oauth_timeout": 30,
                                 "oauth_state_enabled": false
-                            }
+                            },
+                            "defaultValue": "noauth"
                         },
                         {
                             "type": "radio",
@@ -213,6 +216,34 @@
                         }
                     ],
                     "title": "Logging"
+                },
+                {
+                    "name": "advanced_configuration",
+                    "title": "Advanced configuration",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Python path",
+                            "help": "Full path of the Python interpreter to be used.",
+                            "field": "python_bin_path",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "/usr/bin/python3",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "MQ client path",
+                            "help": "MQ Series client librairies install path.",
+                            "field": "mqclient_bin_path",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "/opt/mqm",
+                            "required": true
+                        }
+                    ]
                 }
             ],
             "title": "Configuration",
@@ -291,7 +322,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Rcd2226f",
+        "version": "0.0.0Rdaefeb6",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }
