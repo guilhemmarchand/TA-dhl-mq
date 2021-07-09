@@ -16,48 +16,8 @@ def checkstrforjson(i):
         return i       
 
 def process_event(helper, *args, **kwargs):
-    """
-    # IMPORTANT
-    # Do not remove the anchor macro:start and macro:end lines.
-    # These lines are used to generate sample code. If they are
-    # removed, the sample code will not be updated when configurations
-    # are updated.
-
-    [sample_code_macro:start]
-
-    # The following example gets the alert action parameters and prints them to the log
-    account = helper.get_param("account")
-    helper.log_info("account={}".format(account))
-
-    mqchannel = helper.get_param("mqchannel")
-    helper.log_info("mqchannel={}".format(mqchannel))
-
-    mqqueuedest = helper.get_param("mqqueuedest")
-    helper.log_info("mqqueuedest={}".format(mqqueuedest))
-
-
-    # The following example adds two sample events ("hello", "world")
-    # and writes them to Splunk
-    # NOTE: Call helper.writeevents() only once after all events
-    # have been added
-    helper.addevent("hello", sourcetype="mq:alert_action:publish_message")
-    helper.addevent("world", sourcetype="mq:alert_action:publish_message")
-    helper.writeevents(index="summary", host="localhost", source="localhost")
-
-    # The following example gets the events that trigger the alert
-    events = helper.get_events()
-    for event in events:
-        helper.log_info("event={}".format(event))
-
-    # helper.settings is a dict that includes environment configuration
-    # Example usage: helper.settings["server_uri"]
-    helper.log_info("server_uri={}".format(helper.settings["server_uri"]))
-    [sample_code_macro:end]
-    """
 
     helper.log_info("Alert action mq_publish_message started.")
-
-    # TODO: Implement your alert action logic here
 
     # imports
     import solnlib
@@ -127,7 +87,7 @@ def process_event(helper, *args, **kwargs):
     helper.log_debug("password={}".format(password))
 
     # get mqmanager
-    mqmanager = account_details.get("mqmanager", 0)
+    mqmanager = str(account)
     helper.log_debug("mqmanager={}".format(mqmanager))
 
     # Get mqhost
@@ -241,6 +201,9 @@ def process_event(helper, *args, **kwargs):
                 # generate a random uuid to name the batch
                 uuid = uuid.uuid4()
 
+                # init the attempts counter
+                no_attempts = 1
+
                 # calculate the length of the message to be published
                 msgpayload_len = len(str(msgpayload))
 
@@ -304,10 +267,11 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info(logmsg)
 
                     # Store a record in the KVstore
-                    record = '{"ctime": "' + str(time.time()) \
+                    record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "success", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
                             + '", "region": "' + str(region) \
+                            + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "message": "' + str(msgpayloadforjson) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
@@ -324,10 +288,11 @@ def process_event(helper, *args, **kwargs):
                     helper.log_error(logmsg)
 
                     # Store a record in the KVstore
-                    record = '{"ctime": "' + str(time.time()) \
-                            + '", "status": "failure", "manager": "' + str(mqmanager) \
+                    record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
+                            + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
                             + '", "region": "' + str(region) \
+                            + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "message": "' + str(msgpayloadforjson) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
@@ -343,9 +308,12 @@ def process_event(helper, *args, **kwargs):
             else:
 
                 # Store a record in the KVstore
-                record = '{"ctime": "' + str(time.time()) \
+                record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
                         + '", "status": "pending", "manager": "' + str(mqmanager) \
                         + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                        + '", "region": "' + str(region) \
+                        + '", "no_attempts": "' + str(0) \
+                        + '", "no_max_retry": "' + str(no_max_retry) \
                         + '", "message": "' + str(msgpayloadforjson) + '"}'
                 response = requests.post(record_url, headers=headers, data=record,
                                         verify=False)

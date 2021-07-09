@@ -16,13 +16,6 @@ util.remove_http_proxy_env_vars()
 
 fields = [
     field.RestField(
-        'mqmanager',
-        required=True,
-        encrypted=False,
-        default=None,
-        validator=None
-    ), 
-    field.RestField(
         'mqhost',
         required=False,
         encrypted=False,

@@ -24,7 +24,7 @@
                     "entity": [
                         {
                             "type": "text",
-                            "label": "Name",
+                            "label": "Queue Manager",
                             "validators": [
                                 {
                                     "type": "string",
@@ -42,17 +42,7 @@
                                 "placeholder": "Required"
                             },
                             "field": "name",
-                            "help": "Enter a unique name for this Queue Manager account.",
-                            "required": true
-                        },
-                        {
-                            "type": "text",
-                            "label": "Queue Manager name",
                             "help": "Enter the name of the Queue Manager.",
-                            "field": "mqmanager",
-                            "options": {
-                                "display": true
-                            },
                             "required": true
                         },
                         {
@@ -356,13 +346,125 @@
                     "help": "The name of field containing the message to be published, if the field is called myfield, enter: myfield"
                 }
             ]
+        },
+        {
+            "name": "mq_publish_message_replay",
+            "label": "Replay MQ failed messages publication",
+            "description": "This alert allows replaying temporary failures of message publication",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Information Conveyance",
+                    "Information Portrayal"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "1.0.0"
+                        ],
+                        "product": "IBM MQ",
+                        "vendor": "Splunk"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
+                "sourcetype": "mq:actions:mq_publish_message:replay"
+            },
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "key",
+                    "field": "key",
+                    "defaultValue": "$result.key$",
+                    "required": true,
+                    "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "Region",
+                    "field": "region",
+                    "defaultValue": "$result.region$",
+                    "required": true,
+                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
+                },
+                {
+                    "type": "text",
+                    "label": "account",
+                    "field": "account",
+                    "defaultValue": "$result.manager$",
+                    "required": true,
+                    "help": "Define the queue manager which euqals to the account name, you can recycle a field resulting from the search, example: $result.manager$"
+                },
+                {
+                    "type": "text",
+                    "label": "MQ Channel",
+                    "field": "mqchannel",
+                    "defaultValue": "$result.channel$",
+                    "required": true,
+                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
+                },
+                {
+                    "type": "text",
+                    "label": "Queue name destination",
+                    "field": "mqqueuedest",
+                    "defaultValue": "$result.queue$",
+                    "required": true,
+                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.queue$"
+                },
+                {
+                    "type": "text",
+                    "label": "Message",
+                    "field": "message",
+                    "defaultValue": "$result.message$",
+                    "required": true,
+                    "help": "The message payload to be replayed, example $result.message$"
+                },
+                {
+                    "type": "text",
+                    "label": "max number of attempts",
+                    "field": "no_max_retry",
+                    "defaultValue": "$result.no_max_retry$",
+                    "required": true,
+                    "help": "The max number of attemps to be performed, example $result.no_max_retry$"
+                },
+                {
+                    "type": "text",
+                    "label": "current number of attempts",
+                    "field": "no_attempts",
+                    "defaultValue": "$result.no_attempts$",
+                    "required": true,
+                    "help": "The current number of attemps that have been performed already, example $result.no_attempts$"
+                },
+                {
+                    "type": "text",
+                    "label": "ctime",
+                    "field": "ctime",
+                    "defaultValue": "$result.ctimes$",
+                    "required": true,
+                    "help": "the ctime value, example $result.ctime$"
+                },
+                {
+                    "type": "text",
+                    "label": "mtime",
+                    "field": "mtime",
+                    "defaultValue": "$result.mtime$",
+                    "required": true,
+                    "help": "the mtime value, example $result.mtime$"
+                }
+            ]
         }
     ],
     "meta": {
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R0648736",
+        "version": "0.0.0Re7189db",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }
