@@ -1,21 +1,7 @@
 
 # encoding = utf-8
 
-# This function is required to prevent any failure due to content which we have no control on
-def checkstr(i):
-
-    if i is not None:
-        i = i.replace("\\", "\\\\")
-        # Manage line breaks
-        i = i.replace("\n", "\\n")
-        i = i.replace("\r", "\\r")
-        # Manage tabs
-        i = i.replace("\t", "\\t")
-        # Manage breaking delimiters
-        i = i.replace("\"", "\\\"")
-        i = i.replace("\'", "\\\'")
-        return i
-
+# This function is required to handle special chars for storing the object in the KVstore
 def checkstrforjson(i):
 
     if i is not None:
@@ -116,6 +102,8 @@ def process_event(helper, *args, **kwargs):
 
     # conf manager
     app = 'TA-dhl-mq'
+
+    # get account details
     account_cfm = solnlib.conf_manager.ConfManager(
         session_key,
         app,
@@ -174,6 +162,10 @@ def process_event(helper, *args, **kwargs):
     mqpassthrough = helper.get_global_setting("mqpassthrough")
     helper.log_info("mqpassthrough={}".format(mqpassthrough))
 
+    # Get no_max_retry
+    no_max_retry = int(helper.get_global_setting("no_max_retry"))
+    helper.log_info("no_max_retry={}".format(no_max_retry))
+
     #
     # Alert params
     #
@@ -189,6 +181,10 @@ def process_event(helper, *args, **kwargs):
     # Get mqmsgfield
     mqmsgfield = helper.get_param("mqmsgfield")
     helper.log_debug("mqmsgfield={}".format(mqmsgfield))
+
+    # Get region
+    region = helper.get_param("region")
+    helper.log_debug("region={}".format(region))
 
     #
     # START LOGIC 
@@ -229,7 +225,7 @@ def process_event(helper, *args, **kwargs):
         msgpayload = "null"
         for key, value in event.items():
             if key in str(mqmsgfield):
-                msgpayload = checkstr(value)
+                msgpayload = str(value)
                 msgpayloadforjson = checkstrforjson(value)
         helper.log_debug("msgpayload:={}".format(msgpayload))
 
@@ -272,7 +268,7 @@ def process_event(helper, *args, **kwargs):
                     'host = \'' + str(mqhost) + '\'\n' +\
                     'port = \'' + str(mqport) + '\'\n' +\
                     'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
-                    'message = \'' + str(checkstr(msgpayload)) + '\'\n' +\
+                    'message = \"\"\"' + str(msgpayload) + '\"\"\"\n' +\
                     'conn_info = \'%s(%s)\' % (host, port)\n' +\
                     'try:\n' +\
                     '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
@@ -296,8 +292,8 @@ def process_event(helper, *args, **kwargs):
                 helper.log_debug("output={}".format(output))
 
                 # purge both baches
-                os.remove(str(shellbatchname))
-                os.remove(str(pybatchname))
+                #os.remove(str(shellbatchname))
+                #os.remove(str(pybatchname))
 
                 # From the output of the subprocess, determine the publication status
                 # If an exception was raised, it will be added to the error message
@@ -311,6 +307,8 @@ def process_event(helper, *args, **kwargs):
                     record = '{"ctime": "' + str(time.time()) \
                             + '", "status": "success", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "region": "' + str(region) \
+                            + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "message": "' + str(msgpayloadforjson) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)
@@ -329,6 +327,8 @@ def process_event(helper, *args, **kwargs):
                     record = '{"ctime": "' + str(time.time()) \
                             + '", "status": "failure", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "region": "' + str(region) \
+                            + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "message": "' + str(msgpayloadforjson) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)

@@ -223,6 +223,17 @@
                     "entity": [
                         {
                             "type": "text",
+                            "label": "Max number of retry",
+                            "help": "The initial max number of retry attempts to submit to the queue, if reached this will be considered as a permanent failure.",
+                            "field": "no_max_retry",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "10",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
                             "label": "Python path",
                             "help": "Full path of the Python interpreter to be used.",
                             "field": "python_bin_path",
@@ -314,6 +325,14 @@
                 },
                 {
                     "type": "text",
+                    "label": "Region",
+                    "field": "region",
+                    "defaultValue": "$result.region$",
+                    "required": true,
+                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
+                },
+                {
+                    "type": "text",
                     "label": "MQ Channel",
                     "field": "mqchannel",
                     "defaultValue": "",
@@ -343,7 +362,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Rc2a59d3",
+        "version": "0.0.0R0648736",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

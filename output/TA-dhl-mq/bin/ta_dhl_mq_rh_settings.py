@@ -28,6 +28,13 @@ model_logging = RestModel(fields_logging, name='logging')
 
 fields_advanced_configuration = [
     field.RestField(
+        'no_max_retry',
+        required=True,
+        encrypted=False,
+        default='10',
+        validator=None
+    ), 
+    field.RestField(
         'python_bin_path',
         required=True,
         encrypted=False,
