@@ -242,6 +242,27 @@
                             },
                             "defaultValue": "/opt/mqm",
                             "required": true
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Enable passthrough mode",
+                            "field": "mqpassthrough",
+                            "defaultValue": "disabled",
+                            "help": "In passthrough mode, actions to be performed are stored in a KVstore to be processed by a third party instance",
+                            "required": true,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "enabled",
+                                        "label": "Enabled"
+                                    },
+                                    {
+                                        "value": "disabled",
+                                        "label": "Disabled"
+                                    }
+                                ],
+                                "display": true
+                            }
                         }
                     ]
                 }
@@ -322,7 +343,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Rdaefeb6",
+        "version": "0.0.0Rc2a59d3",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

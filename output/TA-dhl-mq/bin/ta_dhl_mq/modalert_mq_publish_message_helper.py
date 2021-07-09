@@ -16,6 +16,19 @@ def checkstr(i):
         i = i.replace("\'", "\\\'")
         return i
 
+def checkstrforjson(i):
+
+    if i is not None:
+        i = i.replace("\\", "\\\\")
+        # Manage line breaks
+        i = i.replace("\n", "\\n")
+        i = i.replace("\r", "\\r")
+        # Manage tabs
+        i = i.replace("\t", "\\t")
+        # Manage breaking delimiters
+        i = i.replace("\"", "\\\"")
+        return i       
+
 def process_event(helper, *args, **kwargs):
     """
     # IMPORTANT
@@ -65,6 +78,11 @@ def process_event(helper, *args, **kwargs):
     import os
     import uuid
     import subprocess
+    import splunk.entity
+    import splunk.Intersplunk
+    import splunklib.client as client
+    import time
+    import requests
 
     account = helper.get_param("account")
     helper.log_info("account={}".format(account))
@@ -72,6 +90,29 @@ def process_event(helper, *args, **kwargs):
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
     session_key = helper.session_key
+
+    # Get splunkd port
+    entity = splunk.entity.getEntity('/server', 'settings',
+                                     namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
+    mydict = entity
+    splunkd_port = mydict['mgmtHostPort']
+    helper.log_debug("splunkd_port={}".format(splunkd_port))
+
+    # Create a service for SDK based actions
+    service = client.connect(
+        owner="nobody",
+        app="TA-dhl-mq",
+        port=splunkd_port,
+        token=session_key
+    )    
+
+    # Define the KVstore collection backend, we will use it to store and update statuses of our MQ messages submissions
+    kv_url = record_url = 'https://localhost:' + str(splunkd_port) \
+                     + '/servicesNS/nobody/' \
+                       'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
+    headers = {
+        'Authorization': 'Splunk %s' % session_key,
+        'Content-Type': 'application/json'}
 
     # conf manager
     app = 'TA-dhl-mq'
@@ -129,6 +170,10 @@ def process_event(helper, *args, **kwargs):
     mqclient_bin_path = helper.get_global_setting("mqclient_bin_path")
     helper.log_info("mqclient_bin_path={}".format(mqclient_bin_path))
 
+    # Get mqpassthrough
+    mqpassthrough = helper.get_global_setting("mqpassthrough")
+    helper.log_info("mqpassthrough={}".format(mqpassthrough))
+
     #
     # Alert params
     #
@@ -185,6 +230,7 @@ def process_event(helper, *args, **kwargs):
         for key, value in event.items():
             if key in str(mqmsgfield):
                 msgpayload = checkstr(value)
+                msgpayloadforjson = checkstrforjson(value)
         helper.log_debug("msgpayload:={}".format(msgpayload))
 
         # publish
@@ -194,73 +240,121 @@ def process_event(helper, *args, **kwargs):
                 + " to the queue manager account=" + str(account)
             helper.log_debug("logmsg:={}".format(logmsg))
 
-            # generate a random uuid to name the batch
-            uuid = uuid.uuid4()
+            if str(mqpassthrough) == "disabled":
 
-            # calculate the length of the message to be published
-            msgpayload_len = len(str(msgpayload))
+                # generate a random uuid to name the batch
+                uuid = uuid.uuid4()
 
-            # Generate Shell and Python batch files
-            shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
-            pybatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.py"
+                # calculate the length of the message to be published
+                msgpayload_len = len(str(msgpayload))
 
-            shellcontent = '#!/bin/bash\n' +\
-            'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:' + str(mqclient_bin_path) + '/lib64\n' +\
-            'unset PYTHONPATH\n' +\
-            str(python_bin_path) + ' ' + str(pybatchname) + '\n'
+                # Generate Shell and Python batch files
+                shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
+                pybatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.py"
 
-            helper.log_debug("shellcontent:={}".format(shellcontent))
+                shellcontent = '#!/bin/bash\n' +\
+                'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:' + str(mqclient_bin_path) + '/lib64\n' +\
+                'unset PYTHONPATH\n' +\
+                str(python_bin_path) + ' ' + str(pybatchname) + '\n'
 
-            with open(str(shellbatchname), 'w') as f:
-                f.write(shellcontent)
-            os.chmod(str(shellbatchname), 0o740)
+                helper.log_debug("shellcontent:={}".format(shellcontent))
 
-            # Generate the Py wrapper
-            pybatchcontent = 'import os\n' +\
-            'import sys\n' +\
-                'import pymqi\n' +\
-                'queue_manager = \'' + str(mqmanager) + '\'\n' +\
-                'channel = \'' + str(mqchannel) + '\'\n' +\
-                'host = \'' + str(mqhost) + '\'\n' +\
-                'port = \'' + str(mqport) + '\'\n' +\
-                'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
-                'message = \'' + str(checkstr(msgpayload)) + '\'\n' +\
-                'conn_info = \'%s(%s)\' % (host, port)\n' +\
-                'try:\n' +\
-                '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
-                '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
-                '    queue.put(message)\n' +\
-                '    queue.close()\n' +\
-                '    qmgr.disconnect()\n' +\
-                '    print("Success")\n' +\
-                '    sys.exit(0)\n' +\
-                'except Exception as e:\n' +\
-                '   print("Exception: " + str(e))\n' +\
-                '   sys.exit(0)\n'
+                with open(str(shellbatchname), 'w') as f:
+                    f.write(shellcontent)
+                os.chmod(str(shellbatchname), 0o740)
 
-            helper.log_debug("pybatchcontent:={}".format(pybatchcontent))
+                # Generate the Py wrapper
+                pybatchcontent = 'import os\n' +\
+                'import sys\n' +\
+                    'import pymqi\n' +\
+                    'queue_manager = \'' + str(mqmanager) + '\'\n' +\
+                    'channel = \'' + str(mqchannel) + '\'\n' +\
+                    'host = \'' + str(mqhost) + '\'\n' +\
+                    'port = \'' + str(mqport) + '\'\n' +\
+                    'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
+                    'message = \'' + str(checkstr(msgpayload)) + '\'\n' +\
+                    'conn_info = \'%s(%s)\' % (host, port)\n' +\
+                    'try:\n' +\
+                    '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
+                    '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
+                    '    queue.put(message)\n' +\
+                    '    queue.close()\n' +\
+                    '    qmgr.disconnect()\n' +\
+                    '    print("Success")\n' +\
+                    '    sys.exit(0)\n' +\
+                    'except Exception as e:\n' +\
+                    '   print("Exception: " + str(e))\n' +\
+                    '   sys.exit(0)\n'
 
-            with open(str(pybatchname), 'w') as f:
-                f.write(pybatchcontent)
+                helper.log_debug("pybatchcontent:={}".format(pybatchcontent))
 
-            # Execute the Shell batch now
-            output = subprocess.check_output([str(shellbatchname), str(pybatchname)],universal_newlines=True)
-            helper.log_debug("output={}".format(output))
+                with open(str(pybatchname), 'w') as f:
+                    f.write(pybatchcontent)
 
-            # purge both baches
-            os.remove(str(shellbatchname))
-            os.remove(str(pybatchname))
+                # Execute the Shell batch now
+                output = subprocess.check_output([str(shellbatchname), str(pybatchname)],universal_newlines=True)
+                helper.log_debug("output={}".format(output))
 
-            # From the output of the subprocess, determine the publication status
-            # If an exception was raised, it will be added to the error message
-            if "Success" in str(output):
-                logmsg = "message publication success, queue_manager=" + str(mqmanager) \
-                + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                + ", message_length=" + str(msgpayload_len)
-                helper.log_info(logmsg)
+                # purge both baches
+                os.remove(str(shellbatchname))
+                os.remove(str(pybatchname))
+
+                # From the output of the subprocess, determine the publication status
+                # If an exception was raised, it will be added to the error message
+                if "Success" in str(output):
+                    logmsg = "message publication success, queue_manager=" + str(mqmanager) \
+                    + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                    + ", message_length=" + str(msgpayload_len)
+                    helper.log_info(logmsg)
+
+                    # Store a record in the KVstore
+                    record = '{"ctime": "' + str(time.time()) \
+                            + '", "status": "success", "manager": "' + str(mqmanager) \
+                            + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "message": "' + str(msgpayloadforjson) + '"}'
+                    response = requests.post(record_url, headers=headers, data=record,
+                                            verify=False)
+                    if response.status_code not in (200, 201, 204):
+                        helper.log_error(
+                            'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+                            'content={}'.format(record_url, record, response.status_code, response.text))
+                    else:
+                        helper.log_debug("Kvstore saving is successful")
+
+                else:
+                    logmsg = "failure in message publication with exception: " + str(output)
+                    helper.log_error(logmsg)
+
+                    # Store a record in the KVstore
+                    record = '{"ctime": "' + str(time.time()) \
+                            + '", "status": "failure", "manager": "' + str(mqmanager) \
+                            + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "message": "' + str(msgpayloadforjson) + '"}'
+                    response = requests.post(record_url, headers=headers, data=record,
+                                            verify=False)
+                    if response.status_code not in (200, 201, 204):
+                        helper.log_error(
+                            'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+                            'content={}'.format(record_url, record, response.status_code, response.text))
+                    else:
+                        helper.log_debug("Kvstore saving is successful")
+
+            # Stored in a KVstore to be processed
             else:
-                logmsg = "failure in message publication with exception: " + str(output)
-                helper.log_error(logmsg)
+
+                # Store a record in the KVstore
+                record = '{"ctime": "' + str(time.time()) \
+                        + '", "status": "pending", "manager": "' + str(mqmanager) \
+                        + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                        + '", "message": "' + str(msgpayloadforjson) + '"}'
+                response = requests.post(record_url, headers=headers, data=record,
+                                        verify=False)
+                if response.status_code not in (200, 201, 204):
+                    helper.log_error(
+                        'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+                        'content={}'.format(record_url, record, response.status_code, response.text))
+                else:
+                    helper.log_debug("Kvstore saving is successful")
 
         # message is empty!
         else:

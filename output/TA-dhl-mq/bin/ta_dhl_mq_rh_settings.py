@@ -40,6 +40,13 @@ fields_advanced_configuration = [
         encrypted=False,
         default='/opt/mqm',
         validator=None
+    ), 
+    field.RestField(
+        'mqpassthrough',
+        required=True,
+        encrypted=False,
+        default='disabled',
+        validator=None
     )
 ]
 model_advanced_configuration = RestModel(fields_advanced_configuration, name='advanced_configuration')
