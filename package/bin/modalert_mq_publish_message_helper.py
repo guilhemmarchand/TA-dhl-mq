@@ -53,7 +53,7 @@ def process_event(helper, *args, **kwargs):
     )    
 
     # Define the KVstore collection backend, we will use it to store and update statuses of our MQ messages submissions
-    kv_url = record_url = 'https://localhost:' + str(splunkd_port) \
+    record_url = 'https://localhost:' + str(splunkd_port) \
                      + '/servicesNS/nobody/' \
                        'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
     headers = {
@@ -192,14 +192,17 @@ def process_event(helper, *args, **kwargs):
         # publish
         if msgpayload:
 
+            # calculate the length of the message to be published
+            msgpayload_len = len(str(msgpayload))
+
             # for debug only
             logmsg = "Publishing the message=" + str(msgpayload) + " to the queue manager=" + str(account) \
-                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest)
+                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) + ", message_length=" + str(msgpayload_len)
             helper.log_debug(logmsg)
 
             # for normal logging - do not include the message itself
             logmsg = "Publishing a message to the queue manager=" + str(account) \
-                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest)
+                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) + ", message_length=" + str(msgpayload_len)
             helper.log_info(logmsg)
 
             if str(mqpassthrough) == "disabled":
@@ -209,9 +212,6 @@ def process_event(helper, *args, **kwargs):
 
                 # init the attempts counter
                 no_attempts = 1
-
-                # calculate the length of the message to be published
-                msgpayload_len = len(str(msgpayload))
 
                 # Generate Shell and Python batch files
                 shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
