@@ -277,6 +277,17 @@
                         },
                         {
                             "type": "text",
+                            "label": "KVstore search filters",
+                            "help": "You a search filter string if required, example: (region=\"LAB1\" OR region=\"LAB2\")",
+                            "field": "kvstore_search_filters",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "(region=\"*\")",
+                            "required": false
+                        },
+                        {
+                            "type": "text",
                             "label": "Python path",
                             "help": "Full path of the Python interpreter to be used.",
                             "field": "python_bin_path",
@@ -525,7 +536,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Rece6432",
+        "version": "0.0.0Rc05b3fe",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

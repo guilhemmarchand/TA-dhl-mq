@@ -8,6 +8,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import sys
+import splunk
+import splunk.entity
 import requests
 import time
 import csv
@@ -22,14 +24,19 @@ import splunklib.client as client
 
 class GetMqReplay(GeneratingCommand):
 
-    # url and mode are required arguments of the SPL command
-    target = Option(require=True)
-    token = Option(require=True)
-
     def generate(self, **kwargs):
 
-        if self.target and self.token:
+        if self:
 
+            # Get the session key
+            session_key = self._metadata.searchinfo.session_key
+
+            # Get splunkd port
+            entity = splunk.entity.getEntity('/server', 'settings',
+                                                namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
+            splunkd_port = entity['mgmtHostPort']
+
+            # Get conf
             conf_file = "ta_dhl_mq_settings"
             confs = self.service.confs[str(conf_file)]
             kvstore_instance = None
@@ -41,16 +48,22 @@ class GetMqReplay(GeneratingCommand):
                             kvstore_instance = value
                         if key == "bearer_token":
                             bearer_token = value
+                        if key == "kvstore_search_filters":
+                            kvstore_search_filters = value
             
-
-            # Define the headers
-            header = 'Bearer ' + str(bearer_token)
+            # Define the headers, use bearer token if instance is not local
+            if str(kvstore_instance) != "localhost:8089":
+                header = 'Bearer ' + str(bearer_token)
+            else:
+                header = 'Splunk ' + str(session_key)
 
             # Define the url
             url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
 
             # Get data
             search = "| inputlookup mq_publish_backlog"
+            if kvstore_search_filters:
+                search = str(search) + " | search " + str(kvstore_search_filters)
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 

@@ -63,6 +63,13 @@ fields_advanced_configuration = [
         validator=None
     ), 
     field.RestField(
+        'kvstore_search_filters',
+        required=False,
+        encrypted=False,
+        default='(region="*")',
+        validator=None
+    ), 
+    field.RestField(
         'python_bin_path',
         required=True,
         encrypted=False,
