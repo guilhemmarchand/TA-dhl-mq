@@ -19,4 +19,5 @@ param.no_max_retry = <string> max number of attempts. It's a required parameter.
 param.no_attempts = <string> current number of attempts. It's a required parameter. It's default value is $result.no_attempts$.
 param.ctime = <string> ctime. It's a required parameter. It's default value is $result.ctimes$.
 param.mtime = <string> mtime. It's a required parameter. It's default value is $result.mtime$.
+param.status = <string> status. It's a required parameter. It's default value is $result.status$.
 

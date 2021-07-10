@@ -31,7 +31,7 @@ def process_event(helper, *args, **kwargs):
     import requests
 
     account = helper.get_param("account")
-    helper.log_info("account={}".format(account))
+    helper.log_debug("account={}".format(account))
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -112,19 +112,19 @@ def process_event(helper, *args, **kwargs):
 
     # Get python_bin_path
     python_bin_path = helper.get_global_setting("python_bin_path")
-    helper.log_info("python_bin_path={}".format(python_bin_path))
+    helper.log_debug("python_bin_path={}".format(python_bin_path))
 
     # Get mqclient_bin_path
     mqclient_bin_path = helper.get_global_setting("mqclient_bin_path")
-    helper.log_info("mqclient_bin_path={}".format(mqclient_bin_path))
+    helper.log_debug("mqclient_bin_path={}".format(mqclient_bin_path))
 
     # Get mqpassthrough
     mqpassthrough = helper.get_global_setting("mqpassthrough")
-    helper.log_info("mqpassthrough={}".format(mqpassthrough))
+    helper.log_debug("mqpassthrough={}".format(mqpassthrough))
 
     # Get no_max_retry
     no_max_retry = int(helper.get_global_setting("no_max_retry"))
-    helper.log_info("no_max_retry={}".format(no_max_retry))
+    helper.log_debug("no_max_retry={}".format(no_max_retry))
 
     #
     # Alert params
@@ -191,10 +191,16 @@ def process_event(helper, *args, **kwargs):
 
         # publish
         if msgpayload:
-            logmsg = "Publishing the message=" + str(msgpayload) + " to the queue manager=" + str(mqhost) \
-                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                + " to the queue manager account=" + str(account)
-            helper.log_debug("logmsg:={}".format(logmsg))
+
+            # for debug only
+            logmsg = "Publishing the message=" + str(msgpayload) + " to the queue manager=" + str(account) \
+                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest)
+            helper.log_debug(logmsg)
+
+            # for normal logging - do not include the message itself
+            logmsg = "Publishing a message to the queue manager=" + str(account) \
+                + " with channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest)
+            helper.log_info(logmsg)
 
             if str(mqpassthrough) == "disabled":
 
@@ -284,11 +290,12 @@ def process_event(helper, *args, **kwargs):
                         helper.log_debug("Kvstore saving is successful")
 
                 else:
-                    logmsg = "failure in message publication with exception: " + str(output)
+                    logmsg = "failure in message publication with exception: " + str(output)                    
                     helper.log_error(logmsg)
+                    helper.log_info("Creating a new record in the replay KVstore with key=" + str(uuid))
 
                     # Store a record in the KVstore
-                    record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
+                    record = '{"_key": "' + str(uuid) + '", "ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
                             + '", "region": "' + str(region) \
@@ -306,6 +313,8 @@ def process_event(helper, *args, **kwargs):
 
             # Stored in a KVstore to be processed
             else:
+
+                helper.log_info("Creating a new record in the replay KVstore with key=" + str(uuid))
 
                 # Store a record in the KVstore
                 record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \

@@ -1,6 +1,39 @@
 
 # encoding = utf-8
 
+def delete_record(helper, key, record_url, headers, *args, **kwargs):
+
+    # imports
+    import requests
+
+    helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
+
+    # delete the record
+    response = requests.delete(record_url, headers=headers, verify=False)
+
+    if response.status_code not in (200, 201, 204):
+        helper.log_error(
+            'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+            'content={}'.format(record_url, response.status_code, response.text))
+    else:
+        helper.log_debug("Kvstore saving is successful")
+
+
+def update_record(helper, record, record_url, headers, *args, **kwargs):
+
+    # imports
+    import requests    
+
+    response = requests.post(record_url, headers=headers, data=record,
+                            verify=False)
+    if response.status_code not in (200, 201, 204):
+        helper.log_error(
+            'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+            'content={}'.format(record_url, record, response.status_code, response.text))
+    else:
+        helper.log_debug("Kvstore saving is successful")
+
+
 def process_event(helper, *args, **kwargs):
 
     helper.log_info("Alert action mq_publish_message_replay started.")
@@ -17,7 +50,7 @@ def process_event(helper, *args, **kwargs):
     import requests
 
     account = helper.get_param("account")
-    helper.log_info("account={}".format(account))
+    helper.log_debug("account={}".format(account))
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -98,15 +131,27 @@ def process_event(helper, *args, **kwargs):
 
     # Get python_bin_path
     python_bin_path = helper.get_global_setting("python_bin_path")
-    helper.log_info("python_bin_path={}".format(python_bin_path))
+    helper.log_debug("python_bin_path={}".format(python_bin_path))
 
     # Get mqclient_bin_path
     mqclient_bin_path = helper.get_global_setting("mqclient_bin_path")
-    helper.log_info("mqclient_bin_path={}".format(mqclient_bin_path))
+    helper.log_debug("mqclient_bin_path={}".format(mqclient_bin_path))
 
     # Get mqpassthrough
     mqpassthrough = helper.get_global_setting("mqpassthrough")
-    helper.log_info("mqpassthrough={}".format(mqpassthrough))
+    helper.log_debug("mqpassthrough={}".format(mqpassthrough))
+
+    # Get kvstore_eviction
+    kvstore_eviction = helper.get_global_setting("kvstore_eviction")
+    helper.log_debug("kvstore_eviction={}".format(kvstore_eviction))    
+
+    # Get kvstore_retention
+    kvstore_retention = helper.get_global_setting("kvstore_retention")
+    helper.log_debug("kvstore_retention={}".format(kvstore_retention))
+
+    # convert in seconds
+    kvstore_retention_seconds = int(float(kvstore_retention) * 3600)
+    helper.log_debug("kvstore_retention_seconds={}".format(kvstore_retention_seconds))
 
     #
     # Alert params
@@ -148,6 +193,13 @@ def process_event(helper, *args, **kwargs):
     mtime = helper.get_param("mtime")
     helper.log_debug("mtime={}".format(mtime))
 
+    # Get status
+    status = helper.get_param("status")
+    helper.log_debug("status={}".format(status))
+
+    # Set record_url
+    record_url = str(kv_url) + str(key)
+
     #
     # START LOGIC 
     #
@@ -161,157 +213,175 @@ def process_event(helper, *args, **kwargs):
 
     elif str(mqpassthrough) == "disabled":
 
-        # Unfortunately loading the pymqi module natively from Splunk has not been successful
-        # Therefore, we will rely on the system with a fairly simple logic:
-        # For each message to be submitted, create a single Python batch file and a Shell wrapper
-        # The reason why we need a shell wrapper is to encapsulate the Shell wrapper is the right environment variables we need
+        # get the record age in seconds
+        record_age = int(round(float(time.time()) - float(ctime), 0))
+        helper.log_debug("record_age={}".format(record_age))
 
-        # first, let's create a folder to temporary store our batch files
-        SPLUNK_HOME = os.environ["SPLUNK_HOME"]
-        batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
-        if not os.path.isdir(batchfolder):
-            try:
-                os.makedirs(batchfolder)
-            except Exception as e:
-                helper.log_error("batch folder coult not be created!={}".format(e))
+        # If the record submission is canceled
+        if str(status) in ("permanent_failure") and str(kvstore_eviction) == "delete":
+            logmsg = 'record is in permanent failure status and kvstore_eviction is delete.'
+            helper.log_debug(logmsg)
 
-        # record_url
-        record_url = str(kv_url) + str(key)
+            delete_record(helper, key, record_url, headers)
 
-        # if the max number of attemps has not been reached
-        if no_attempts < no_max_retry:
+        elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
+            logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
+            helper.log_debug(logmsg)
 
-            # increment
-            no_attempts +=1 
-
-            logmsg = 'MQ message publish tempoary failure, attempting publishing message from collection key=' + str(key) \
-                + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
-            helper.log_info(logmsg)
-
-            # generate a random uuid to name the batch
-            uuid = uuid.uuid4()
-
-            # calculate the length of the message to be published
-            msgpayload_len = len(str(message))
-
-            # Generate Shell and Python batch files
-            shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
-            pybatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.py"
-
-            shellcontent = '#!/bin/bash\n' +\
-            'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:' + str(mqclient_bin_path) + '/lib64\n' +\
-            'unset PYTHONPATH\n' +\
-            str(python_bin_path) + ' ' + str(pybatchname) + '\n'
-
-            helper.log_debug("shellcontent:={}".format(shellcontent))
-
-            with open(str(shellbatchname), 'w') as f:
-                f.write(shellcontent)
-            os.chmod(str(shellbatchname), 0o740)
-
-            # Generate the Py wrapper
-            pybatchcontent = 'import os\n' +\
-            'import sys\n' +\
-                'import pymqi\n' +\
-                'queue_manager = \'' + str(mqmanager) + '\'\n' +\
-                'channel = \'' + str(mqchannel) + '\'\n' +\
-                'host = \'' + str(mqhost) + '\'\n' +\
-                'port = \'' + str(mqport) + '\'\n' +\
-                'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
-                'message = \"\"\"' + str(message) + '\"\"\"\n' +\
-                'conn_info = \'%s(%s)\' % (host, port)\n' +\
-                'try:\n' +\
-                '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
-                '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
-                '    queue.put(message)\n' +\
-                '    queue.close()\n' +\
-                '    qmgr.disconnect()\n' +\
-                '    print("Success")\n' +\
-                '    sys.exit(0)\n' +\
-                'except Exception as e:\n' +\
-                '   print("Exception: " + str(e))\n' +\
-                '   sys.exit(0)\n'
-
-            helper.log_debug("pybatchcontent:={}".format(pybatchcontent))
-
-            with open(str(pybatchname), 'w') as f:
-                f.write(pybatchcontent)
-
-            # Execute the Shell batch now
-            output = subprocess.check_output([str(shellbatchname), str(pybatchname)],universal_newlines=True)
-            helper.log_debug("output={}".format(output))
-
-            # purge both baches
-            os.remove(str(shellbatchname))
-            os.remove(str(pybatchname))
-
-            # From the output of the subprocess, determine the publication status
-            # If an exception was raised, it will be added to the error message
-            if "Success" in str(output):
-                logmsg = "message publication success, queue_manager=" + str(mqmanager) \
-                + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                + ", message_length=" + str(msgpayload_len)
+            if record_age >= kvstore_retention_seconds:
+                delete_record(helper, key, record_url, headers)
+            else:
+                logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
+                    + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
                 helper.log_info(logmsg)
 
-                # Update the KVstore record
-                record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                        + '", "status": "success", "manager": "' + str(mqmanager) \
-                        + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
-                        + '", "region": "' + str(region) \
-                        + '", "no_attempts": "' + str(no_attempts) \
-                        + '", "no_max_retry": "' + str(no_max_retry) \
-                        + '", "message": "' + str(message) + '"}'
-                response = requests.post(record_url, headers=headers, data=record,
-                                        verify=False)
-                if response.status_code not in (200, 201, 204):
-                    helper.log_error(
-                        'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
-                        'content={}'.format(record_url, record, response.status_code, response.text))
+        # If the record is to be processed 
+        elif str(status) in ("pending", "temporary_failure"):
+
+            # Unfortunately loading the pymqi module natively from Splunk has not been successful
+            # Therefore, we will rely on the system with a fairly simple logic:
+            # For each message to be submitted, create a single Python batch file and a Shell wrapper
+            # The reason why we need a shell wrapper is to encapsulate the Shell wrapper is the right environment variables we need
+
+            # first, let's create a folder to temporary store our batch files
+            SPLUNK_HOME = os.environ["SPLUNK_HOME"]
+            batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
+            if not os.path.isdir(batchfolder):
+                try:
+                    os.makedirs(batchfolder)
+                except Exception as e:
+                    helper.log_error("batch folder coult not be created!={}".format(e))
+
+            # if the max number of attemps has not been reached
+            if no_attempts < no_max_retry:
+
+                # increment
+                no_attempts +=1 
+
+                logmsg = 'MQ message publish tempoary failure, attempting publishing message from collection key=' + str(key) \
+                    + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
+                helper.log_info(logmsg)
+
+                # generate a random uuid to name the batch
+                uuid = uuid.uuid4()
+
+                # calculate the length of the message to be published
+                msgpayload_len = len(str(message))
+
+                # Generate Shell and Python batch files
+                shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
+                pybatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.py"
+
+                shellcontent = '#!/bin/bash\n' +\
+                'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:' + str(mqclient_bin_path) + '/lib64\n' +\
+                'unset PYTHONPATH\n' +\
+                str(python_bin_path) + ' ' + str(pybatchname) + '\n'
+
+                helper.log_debug("shellcontent:={}".format(shellcontent))
+
+                with open(str(shellbatchname), 'w') as f:
+                    f.write(shellcontent)
+                os.chmod(str(shellbatchname), 0o740)
+
+                # Generate the Py wrapper
+                pybatchcontent = 'import os\n' +\
+                'import sys\n' +\
+                    'import pymqi\n' +\
+                    'queue_manager = \'' + str(mqmanager) + '\'\n' +\
+                    'channel = \'' + str(mqchannel) + '\'\n' +\
+                    'host = \'' + str(mqhost) + '\'\n' +\
+                    'port = \'' + str(mqport) + '\'\n' +\
+                    'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
+                    'message = \"\"\"' + str(message) + '\"\"\"\n' +\
+                    'conn_info = \'%s(%s)\' % (host, port)\n' +\
+                    'try:\n' +\
+                    '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
+                    '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
+                    '    queue.put(message)\n' +\
+                    '    queue.close()\n' +\
+                    '    qmgr.disconnect()\n' +\
+                    '    print("Success")\n' +\
+                    '    sys.exit(0)\n' +\
+                    'except Exception as e:\n' +\
+                    '   print("Exception: " + str(e))\n' +\
+                    '   sys.exit(0)\n'
+
+                helper.log_debug("pybatchcontent:={}".format(pybatchcontent))
+
+                with open(str(pybatchname), 'w') as f:
+                    f.write(pybatchcontent)
+
+                # Execute the Shell batch now
+                output = subprocess.check_output([str(shellbatchname), str(pybatchname)],universal_newlines=True)
+                helper.log_debug("output={}".format(output))
+
+                # purge both baches
+                os.remove(str(shellbatchname))
+                os.remove(str(pybatchname))
+
+                # From the output of the subprocess, determine the publication status
+                # If an exception was raised, it will be added to the error message
+                if "Success" in str(output):
+                    logmsg = "message publication success, queue_manager=" + str(mqmanager) \
+                    + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                    + ", message_length=" + str(msgpayload_len)
+                    helper.log_info(logmsg)
+
+                    # Update the KVstore record
+                    record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                            + '", "status": "success", "manager": "' + str(mqmanager) \
+                            + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "region": "' + str(region) \
+                            + '", "no_attempts": "' + str(no_attempts) \
+                            + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "message": "' + str(message) + '"}'
+
+                    # update the record
+                    update_record(helper, record, record_url, headers)
+
                 else:
-                    helper.log_debug("Kvstore saving is successful")
+                    logmsg = "failure in message publication with exception: " + str(output)
+                    helper.log_error(logmsg)
+
+                    # Update the KVstore record
+                    record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                            + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
+                            + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "region": "' + str(region) \
+                            + '", "no_attempts": "' + str(no_attempts) \
+                            + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "message": "' + str(message) + '"}'
+                    response = requests.post(record_url, headers=headers, data=record,
+                                            verify=False)
+
+                    # update the record
+                    update_record(helper, record, record_url, headers)
 
             else:
-                logmsg = "failure in message publication with exception: " + str(output)
+
+                logmsg = 'MQ message publish permanent failure, the message from collection key=' + str(key) \
+                    + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled'
                 helper.log_error(logmsg)
 
-                # Update the KVstore record
-                record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                        + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
-                        + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
-                        + '", "region": "' + str(region) \
-                        + '", "no_attempts": "' + str(no_attempts) \
-                        + '", "no_max_retry": "' + str(no_max_retry) \
-                        + '", "message": "' + str(message) + '"}'
-                response = requests.post(record_url, headers=headers, data=record,
-                                        verify=False)
-                if response.status_code not in (200, 201, 204):
-                    helper.log_error(
-                        'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
-                        'content={}'.format(record_url, record, response.status_code, response.text))
-                else:
-                    helper.log_debug("Kvstore saving is successful")
+                if str(kvstore_eviction) == "delete":
+                    helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
 
-        else:
+                    # delete the record
+                    delete_record(helper, key, record_url, headers)
 
-            logmsg = 'MQ message publish permanent failure, the message from collection key=' + str(key) \
-                + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled'
-            helper.log_error(logmsg)
+                elif str(kvstore_eviction) == "preserve":
+                    helper.log_info("kvstore_eviction: tagging as permanent_failure and preserving the record with key=" + str(key))
 
-            # Update the KVstore record
-            record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                    + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
-                    + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
-                    + '", "region": "' + str(region) \
-                    + '", "no_attempts": "' + str(no_attempts) \
-                    + '", "no_max_retry": "' + str(no_max_retry) \
-                    + '", "message": "' + str(message) + '"}'
-            response = requests.post(record_url, headers=headers, data=record,
-                                    verify=False)
-            if response.status_code not in (200, 201, 204):
-                helper.log_error(
-                    'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
-                    'content={}'.format(record_url, record, response.status_code, response.text))
-            else:
-                helper.log_debug("Kvstore saving is successful")
+                    # Update the KVstore record
+                    record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                            + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
+                            + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "region": "' + str(region) \
+                            + '", "no_attempts": "' + str(no_attempts) \
+                            + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "message": "' + str(message) + '"}'
+
+                    # update the record
+                    update_record(helper, record, record_url, headers)
 
     return 0

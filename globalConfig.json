@@ -223,6 +223,37 @@
                             "required": true
                         },
                         {
+                            "type": "singleSelect",
+                            "label": "KVstore eviction policy",
+                            "help": "When the max number resubmission attempts is reached, delete or preserve the records in the KVstore.",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "delete",
+                                        "label": "Delete"
+                                    },
+                                    {
+                                        "value": "preserve",
+                                        "label": "Preserve"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "delete",
+                            "field": "kvstore_eviction"
+                        },
+                        {
+                            "type": "text",
+                            "label": "KVstore retention",
+                            "help": "If eviction policy is delete, retention time in hours in the KVstore for the records.",
+                            "field": "kvstore_retention",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "72",
+                            "required": true
+                        },
+                        {
                             "type": "text",
                             "label": "Python path",
                             "help": "Full path of the Python interpreter to be used.",
@@ -456,6 +487,14 @@
                     "defaultValue": "$result.mtime$",
                     "required": true,
                     "help": "the mtime value, example $result.mtime$"
+                },
+                {
+                    "type": "text",
+                    "label": "status",
+                    "field": "status",
+                    "defaultValue": "$result.status$",
+                    "required": true,
+                    "help": "the status value, example $result.status$"
                 }
             ]
         }
@@ -464,7 +503,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Re7189db",
+        "version": "0.0.0Rda8924e",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

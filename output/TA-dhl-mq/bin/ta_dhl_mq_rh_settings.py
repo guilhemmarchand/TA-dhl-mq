@@ -35,6 +35,20 @@ fields_advanced_configuration = [
         validator=None
     ), 
     field.RestField(
+        'kvstore_eviction',
+        required=False,
+        encrypted=False,
+        default='delete',
+        validator=None
+    ), 
+    field.RestField(
+        'kvstore_retention',
+        required=True,
+        encrypted=False,
+        default='72',
+        validator=None
+    ), 
+    field.RestField(
         'python_bin_path',
         required=True,
         encrypted=False,
