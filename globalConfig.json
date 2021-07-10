@@ -255,6 +255,28 @@
                         },
                         {
                             "type": "text",
+                            "label": "KVstore instance and port",
+                            "help": "For client instances, define the Kvstore instance in the format of <server>:<port>",
+                            "field": "kvstore_instance",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "",
+                            "required": false
+                        },
+                        {
+                            "type": "text",
+                            "label": "Bearer token",
+                            "help": "For client instances, set the bearer token use for remote search to the KVstore instance",
+                            "field": "bearer_token",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "",
+                            "required": false
+                        },
+                        {
+                            "type": "text",
                             "label": "Python path",
                             "help": "Full path of the Python interpreter to be used.",
                             "field": "python_bin_path",
@@ -503,7 +525,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Re7a8142",
+        "version": "0.0.0Rece6432",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

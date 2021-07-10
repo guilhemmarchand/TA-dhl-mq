@@ -49,6 +49,20 @@ fields_advanced_configuration = [
         validator=None
     ), 
     field.RestField(
+        'kvstore_instance',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=None
+    ), 
+    field.RestField(
+        'bearer_token',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=None
+    ), 
+    field.RestField(
         'python_bin_path',
         required=True,
         encrypted=False,
