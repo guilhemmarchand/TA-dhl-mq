@@ -44,6 +44,8 @@ class GetMqReplay(GeneratingCommand):
             for stanza in confs:
                 if stanza.name == "advanced_configuration":
                     for key, value in stanza.content.items():
+                        if key == "mqpassthrough":
+                            mqpassthrough = value
                         if key == "kvstore_instance":
                             kvstore_instance = value
                         if key == "bearer_token":
@@ -62,7 +64,11 @@ class GetMqReplay(GeneratingCommand):
 
             # Get data
             search = "| inputlookup mq_publish_backlog"
-            if kvstore_search_filters:
+
+            # if mqpassthrough is enabled, search for successful records only
+            if str(mqpassthrough) == 'disabled':
+                search = str(search) + " where status=\"success\""
+            elif kvstore_search_filters:
                 search = str(search) + " | search " + str(kvstore_search_filters)
             output_mode = "csv"
             exec_mode = "oneshot"

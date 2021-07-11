@@ -7,12 +7,12 @@ import os
 import sys
 
 from splunktaucclib.alert_actions_base import ModularAlertBase
-import modalert_mq_publish_message_replay_helper
+import modalert_mq_publish_message_relay_helper
 
-class AlertActionWorkermq_publish_message_replay(ModularAlertBase):
+class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
 
     def __init__(self, ta_name, alert_name):
-        super(AlertActionWorkermq_publish_message_replay, self).__init__(ta_name, alert_name)
+        super(AlertActionWorkermq_publish_message_relay, self).__init__(ta_name, alert_name)
 
     def validate_params(self):
 
@@ -62,7 +62,7 @@ class AlertActionWorkermq_publish_message_replay(ModularAlertBase):
         try:
             if not self.validate_params():
                 return 3
-            status = modalert_mq_publish_message_replay_helper.process_event(self, *args, **kwargs)
+            status = modalert_mq_publish_message_relay_helper.process_event(self, *args, **kwargs)
         except (AttributeError, TypeError) as ae:
             self.log_error("Error: {}. Please double check spelling and also verify that a compatible version of Splunk_SA_CIM is installed.".format(str(ae)))#ae.message replaced with str(ae)
             return 4
@@ -77,5 +77,5 @@ class AlertActionWorkermq_publish_message_replay(ModularAlertBase):
         return status
 
 if __name__ == "__main__":
-    exitcode = AlertActionWorkermq_publish_message_replay("TA-dhl-mq", "mq_publish_message_replay").run(sys.argv)
+    exitcode = AlertActionWorkermq_publish_message_relay("TA-dhl-mq", "mq_publish_message_relay").run(sys.argv)
     sys.exit(exitcode)

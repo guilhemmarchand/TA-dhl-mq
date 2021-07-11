@@ -37,6 +37,10 @@ def process_event(helper, *args, **kwargs):
     helper.log_debug("Get session_key.")
     session_key = helper.session_key
 
+    # Get the user context
+    user = helper.user
+    helper.log_debug("user={}".format(user))
+
     # Get splunkd port
     entity = splunk.entity.getEntity('/server', 'settings',
                                      namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
@@ -292,7 +296,7 @@ def process_event(helper, *args, **kwargs):
                 else:
                     logmsg = "failure in message publication with exception: " + str(output)                    
                     helper.log_error(logmsg)
-                    helper.log_info("Creating a new record in the replay KVstore with key=" + str(uuid))
+                    helper.log_info("Creating a new record in the relay KVstore with key=" + str(uuid))
 
                     # Store a record in the KVstore
                     record = '{"_key": "' + str(uuid) + '", "ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
@@ -314,7 +318,7 @@ def process_event(helper, *args, **kwargs):
             # Stored in a KVstore to be processed
             else:
 
-                helper.log_info("Creating a new record in the replay KVstore with key=" + str(uuid))
+                helper.log_info("Creating a new record in the relay KVstore with key=" + str(uuid))
 
                 # Store a record in the KVstore
                 record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \

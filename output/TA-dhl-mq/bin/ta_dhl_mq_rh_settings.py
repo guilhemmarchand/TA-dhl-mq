@@ -38,7 +38,7 @@ fields_advanced_configuration = [
         'kvstore_eviction',
         required=False,
         encrypted=False,
-        default='delete',
+        default='preserve',
         validator=None
     ), 
     field.RestField(

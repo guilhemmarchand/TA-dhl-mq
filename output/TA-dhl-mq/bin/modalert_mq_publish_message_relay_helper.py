@@ -1,6 +1,20 @@
 
 # encoding = utf-8
 
+# This function is required to handle special chars for storing the object in the KVstore
+def checkstrforjson(i):
+
+    if i is not None:
+        i = i.replace("\\", "\\\\")
+        # Manage line breaks
+        i = i.replace("\n", "\\n")
+        i = i.replace("\r", "\\r")
+        # Manage tabs
+        i = i.replace("\t", "\\t")
+        # Manage breaking delimiters
+        i = i.replace("\"", "\\\"")
+        return i       
+
 def delete_record(helper, key, record_url, headers, *args, **kwargs):
 
     # imports
@@ -36,7 +50,7 @@ def update_record(helper, record, record_url, headers, *args, **kwargs):
 
 def process_event(helper, *args, **kwargs):
 
-    helper.log_info("Alert action mq_publish_message_replay started.")
+    helper.log_info("Alert action mq_publish_message_relay started.")
 
     # imports
     import solnlib
@@ -56,6 +70,10 @@ def process_event(helper, *args, **kwargs):
     helper.log_debug("Get session_key.")
     session_key = helper.session_key
 
+    # Get the user context
+    user = helper.user
+    helper.log_debug("user={}".format(user))
+
     # Get splunkd port
     entity = splunk.entity.getEntity('/server', 'settings',
                                      namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
@@ -71,13 +89,29 @@ def process_event(helper, *args, **kwargs):
         token=session_key
     )    
 
-    # Define the KVstore collection backend, we will use it to store and update statuses of our MQ messages submissions
-    kv_url = 'https://localhost:' + str(splunkd_port) \
-                     + '/servicesNS/nobody/' \
-                       'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
-    headers = {
-        'Authorization': 'Splunk %s' % session_key,
-        'Content-Type': 'application/json'}
+    # Get kvstore_instance
+    kvstore_instance = helper.get_global_setting("kvstore_instance")
+    helper.log_debug("kvstore_instance={}".format(kvstore_instance))
+
+    # Get bearer_token
+    bearer_token = helper.get_global_setting("bearer_token")
+    helper.log_debug("bearer_token={}".format(bearer_token))
+
+    # Define the headers and kv_url, use bearer token if instance is not local
+    if str(kvstore_instance) != "localhost:8089":
+        headers = {
+            'Authorization': 'Bearer %s' % bearer_token,
+            'Content-Type': 'application/json'}
+        kv_url = 'https://' + str(kvstore_instance) \
+                        + '/servicesNS/nobody/' \
+                        'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
+    else:
+        headers = {
+            'Authorization': 'Splunk %s' % session_key,
+            'Content-Type': 'application/json'}
+        kv_url = 'https://localhost:' + str(splunkd_port) \
+                        + '/servicesNS/nobody/' \
+                        'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
 
     # conf manager
     app = 'TA-dhl-mq'
@@ -204,12 +238,31 @@ def process_event(helper, *args, **kwargs):
     # START LOGIC 
     #
 
-    # if passthrough mode is enabled, do nothing, this instance does not handle this role
+    # if passthrough mode is enabled, this instance will only handle messages that were successfully published
 
     if str(mqpassthrough) == "enabled":
 
-        logmsg = 'This instance is configured in passthrough mode, therefore we do not perform any message publication, nothing to do.'
-        helper.log_info(logmsg)
+        # get the record age in seconds
+        record_age = int(round(float(time.time()) - float(ctime), 0))
+        helper.log_debug("record_age={}".format(record_age))
+
+        # On the master instance, we handle the lifecyle of messages that were successfully published, and their deletion upon retention reached
+        if str(status) in ("success") and str(kvstore_eviction) == "delete":
+            logmsg = 'record has been successfully published and kvstore_eviction is delete.'
+            helper.log_debug(logmsg)
+
+            delete_record(helper, key, record_url, headers)
+
+        elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
+            logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
+            helper.log_debug(logmsg)
+
+            if record_age >= kvstore_retention_seconds:
+                delete_record(helper, key, record_url, headers)
+            else:
+                logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
+                    + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
+                helper.log_info(logmsg)
 
     elif str(mqpassthrough) == "disabled":
 
@@ -334,7 +387,7 @@ def process_event(helper, *args, **kwargs):
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
-                            + '", "message": "' + str(message) + '"}'
+                            + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                     # update the record
                     update_record(helper, record, record_url, headers)
@@ -350,7 +403,7 @@ def process_event(helper, *args, **kwargs):
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
-                            + '", "message": "' + str(message) + '"}'
+                            + '", "message": "' + str(checkstrforjson(message)) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)
 
@@ -379,7 +432,7 @@ def process_event(helper, *args, **kwargs):
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
-                            + '", "message": "' + str(message) + '"}'
+                            + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                     # update the record
                     update_record(helper, record, record_url, headers)
