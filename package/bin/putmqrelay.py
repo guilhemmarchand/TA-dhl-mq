@@ -151,7 +151,7 @@ class PutMqRelay(StreamingCommand):
                         "_key": str(keyrecord),
                         "ctime": str(ctime),
                         "mtime": str(mtime),
-                        "status": "success",
+                        "status": "pending",
                         "manager": str(manager),
                         "channel": str(channel),
                         "queue": str(queue),
