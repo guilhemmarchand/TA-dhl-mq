@@ -66,17 +66,17 @@ class GetMqReplay(GeneratingCommand):
             search = "| inputlookup mq_publish_backlog"
 
             # if mqpassthrough is enabled, search for successful records only
-            if str(mqpassthrough) == 'disabled':
+            if str(mqpassthrough) == 'enabled':
                 search = str(search) + " where status=\"success\""
             elif kvstore_search_filters:
-                search = str(search) + " | search " + str(kvstore_search_filters)
+                search = str(search) + " where status!=\"success\" | search " + str(kvstore_search_filters)
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
             csv_data = response.text
 
             # Use the CSV dict reader
-            readCSV = csv.DictReader(csv_data.splitlines(), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
+            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
 
             # For row in CSV, generate the _raw
             for row in readCSV:
