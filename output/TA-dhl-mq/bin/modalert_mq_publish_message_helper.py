@@ -150,6 +150,10 @@ def process_event(helper, *args, **kwargs):
     region = helper.get_param("region")
     helper.log_debug("region={}".format(region))
 
+    # Get appname
+    appname = helper.get_param("appname")
+    helper.log_debug("appname={}".format(appname))
+
     #
     # START LOGIC 
     #
@@ -280,9 +284,11 @@ def process_event(helper, *args, **kwargs):
                     record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "success", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "appname": "' + str(appname) \
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "user": "' + str(user) \
                             + '", "message": "' + str(msgpayloadforjson) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)
@@ -302,9 +308,11 @@ def process_event(helper, *args, **kwargs):
                     record = '{"_key": "' + str(uuid) + '", "ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "appname": "' + str(appname) \
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "user": "' + str(user) \
                             + '", "message": "' + str(msgpayloadforjson) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)
@@ -324,9 +332,11 @@ def process_event(helper, *args, **kwargs):
                 record = '{"ctime": "' + str(time.time()) + '", "mtime": "' + str(time.time()) \
                         + '", "status": "pending", "manager": "' + str(mqmanager) \
                         + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                        + '", "appname": "' + str(appname) \
                         + '", "region": "' + str(region) \
                         + '", "no_attempts": "' + str(0) \
                         + '", "no_max_retry": "' + str(no_max_retry) \
+                        + '", "user": "' + str(user) \
                         + '", "message": "' + str(msgpayloadforjson) + '"}'
                 response = requests.post(record_url, headers=headers, data=record,
                                         verify=False)

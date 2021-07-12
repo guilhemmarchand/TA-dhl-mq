@@ -195,6 +195,10 @@ def process_event(helper, *args, **kwargs):
     key = helper.get_param("key")
     helper.log_debug("key={}".format(key))
 
+    # Get app
+    appname = helper.get_param("appname")
+    helper.log_debug("appname={}".format(appname))
+
     # Get region
     region = helper.get_param("region")
     helper.log_debug("region={}".format(region))
@@ -230,6 +234,10 @@ def process_event(helper, *args, **kwargs):
     # Get status
     status = helper.get_param("status")
     helper.log_debug("status={}".format(status))
+
+    # Get user
+    user = helper.get_param("user")
+    helper.log_debug("user={}".format(user))
 
     # Set record_url
     record_url = str(kv_url) + str(key)
@@ -384,9 +392,11 @@ def process_event(helper, *args, **kwargs):
                     record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "success", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "appname": "' + str(appname) \
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "user": "' + str(user) \
                             + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                     # update the record
@@ -400,9 +410,11 @@ def process_event(helper, *args, **kwargs):
                     record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "appname": "' + str(appname) \
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "user": "' + str(user) \
                             + '", "message": "' + str(checkstrforjson(message)) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)
@@ -429,9 +441,11 @@ def process_event(helper, *args, **kwargs):
                     record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
                             + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
                             + '", "channel": "' + str(mqchannel) + '", "queue": "' + str(mqqueuedest) \
+                            + '", "appname": "' + str(appname) \
                             + '", "region": "' + str(region) \
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
+                            + '", "user": "' + str(user) \
                             + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                     # update the record

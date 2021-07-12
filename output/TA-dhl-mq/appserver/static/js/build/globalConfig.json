@@ -363,7 +363,7 @@
                         "vendor": "Splunk"
                     }
                 ],
-                "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message\"&earliest=0&latest=",
                 "sourcetype": "mq:alert_action:publish_message"
             },
             "entity": [
@@ -376,6 +376,14 @@
                     "labelField": "title",
                     "help": "Select the Queue Manager account from the dropdown",
                     "required": true
+                },
+                {
+                    "type": "text",
+                    "label": "App",
+                    "field": "appname",
+                    "defaultValue": "$result.appname$",
+                    "required": true,
+                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
                 },
                 {
                     "type": "text",
@@ -437,7 +445,7 @@
                         "vendor": "Splunk"
                     }
                 ],
-                "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message:relay\"&earliest=0&latest=",
                 "sourcetype": "mq:actions:mq_publish_message:relay"
             },
             "entity": [
@@ -448,6 +456,14 @@
                     "defaultValue": "$result.key$",
                     "required": true,
                     "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "App",
+                    "field": "appname",
+                    "defaultValue": "$result.appname$",
+                    "required": true,
+                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
                 },
                 {
                     "type": "text",
@@ -528,6 +544,14 @@
                     "defaultValue": "$result.status$",
                     "required": true,
                     "help": "the status value, example $result.status$"
+                },
+                {
+                    "type": "text",
+                    "label": "user",
+                    "field": "user",
+                    "defaultValue": "$result.user$",
+                    "required": true,
+                    "help": "the user value, example $result.user$"
                 }
             ]
         }
@@ -536,7 +560,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Rc40abd8",
+        "version": "0.0.0Ra8306ce",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

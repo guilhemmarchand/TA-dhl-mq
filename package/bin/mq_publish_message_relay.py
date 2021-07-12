@@ -20,6 +20,10 @@ class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
             self.log_error('key is a mandatory parameter, but its value is None.')
             return False
 
+        if not self.get_param("appname"):
+            self.log_error('appname is a mandatory parameter, but its value is None.')
+            return False
+
         if not self.get_param("region"):
             self.log_error('region is a mandatory parameter, but its value is None.')
             return False
@@ -54,6 +58,14 @@ class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
 
         if not self.get_param("mtime"):
             self.log_error('mtime is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("status"):
+            self.log_error('status is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("user"):
+            self.log_error('user is a mandatory parameter, but its value is None.')
             return False
         return True
 

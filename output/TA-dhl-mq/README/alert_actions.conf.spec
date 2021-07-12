@@ -2,6 +2,7 @@
 [mq_publish_message]
 param._cam = <json> Active response parameters.
 param.account = <list> Select Queue Manager Account. It's a required parameter.
+param.appname = <string> App. It's a required parameter. It's default value is $result.appname$.
 param.region = <string> Region. It's a required parameter. It's default value is $result.region$.
 param.mqchannel = <string> MQ Channel. It's a required parameter.
 param.mqqueuedest = <string> Queue name destination. It's a required parameter.
@@ -10,6 +11,7 @@ param.mqmsgfield = <string> Message field name. It's a required parameter. It's 
 [mq_publish_message_relay]
 param._cam = <json> Active response parameters.
 param.key = <string> key. It's a required parameter. It's default value is $result.key$.
+param.appname = <string> App. It's a required parameter. It's default value is $result.appname$.
 param.region = <string> Region. It's a required parameter. It's default value is $result.region$.
 param.account = <string> account. It's a required parameter. It's default value is $result.manager$.
 param.mqchannel = <string> MQ Channel. It's a required parameter. It's default value is $result.channel$.
@@ -20,4 +22,5 @@ param.no_attempts = <string> current number of attempts. It's a required paramet
 param.ctime = <string> ctime. It's a required parameter. It's default value is $result.ctimes$.
 param.mtime = <string> mtime. It's a required parameter. It's default value is $result.mtime$.
 param.status = <string> status. It's a required parameter. It's default value is $result.status$.
+param.user = <string> user. It's a required parameter. It's default value is $result.user$.
 

@@ -20,6 +20,14 @@ class AlertActionWorkermq_publish_message(ModularAlertBase):
             self.log_error('account is a mandatory parameter, but its value is None.')
             return False
 
+        if not self.get_param("appname"):
+            self.log_error('appname is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("region"):
+            self.log_error('region is a mandatory parameter, but its value is None.')
+            return False
+
         if not self.get_param("mqchannel"):
             self.log_error('mqchannel is a mandatory parameter, but its value is None.')
             return False

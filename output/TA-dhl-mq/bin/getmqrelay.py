@@ -80,7 +80,7 @@ class GetMqReplay(GeneratingCommand):
 
             # For row in CSV, generate the _raw
             for row in readCSV:
-                yield {'_time': time.time(), '_raw': str(row), '_key': str(row['_key']), 'message': str(row['message']), 'region': str(row['region']), 'status': str(row['status']), 'ctime': str(row['ctime']), 'mtime': str(row['mtime']), 'manager': str(row['manager']), 'channel': str(row['channel']), 'status': str(row['status']), 'queue': str(row['queue']), 'no_max_retry': str(row['no_max_retry']), 'no_attempts': str(row['no_attempts'])}
+                yield {'_time': time.time(), '_raw': str(row), '_key': str(row['_key']), 'message': str(row['message']), 'appname': str(row['appname']), 'region': str(row['region']), 'status': str(row['status']), 'ctime': str(row['ctime']), 'mtime': str(row['mtime']), 'manager': str(row['manager']), 'channel': str(row['channel']), 'status': str(row['status']), 'queue': str(row['queue']), 'no_max_retry': str(row['no_max_retry']), 'no_attempts': str(row['no_attempts']), 'user': str(row['user']),}
 
         else:
 
