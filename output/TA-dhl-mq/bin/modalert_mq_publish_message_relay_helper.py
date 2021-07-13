@@ -385,7 +385,7 @@ def process_event(helper, *args, **kwargs):
                 if "Success" in str(output):
                     logmsg = "message publication success, queue_manager=" + str(mqmanager) \
                     + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                    + ", message_length=" + str(msgpayload_len)
+                    + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
                     helper.log_info(logmsg)
 
                     # Update the KVstore record
@@ -403,7 +403,7 @@ def process_event(helper, *args, **kwargs):
                     update_record(helper, record, record_url, headers)
 
                 else:
-                    logmsg = "failure in message publication with exception: " + str(output)
+                    logmsg = "failure in message publication for record key=" + str(key) + "with exception: " + str(output)
                     helper.log_error(logmsg)
 
                     # Update the KVstore record
@@ -424,7 +424,7 @@ def process_event(helper, *args, **kwargs):
 
             else:
 
-                logmsg = 'MQ message publish permanent failure, the message from collection key=' + str(key) \
+                logmsg = 'MQ message publish permanent failure for record key=' + str(key) \
                     + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled'
                 helper.log_error(logmsg)
 
