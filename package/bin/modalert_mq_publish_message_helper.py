@@ -237,27 +237,136 @@ def process_event(helper, *args, **kwargs):
                 os.chmod(str(shellbatchname), 0o740)
 
                 # Generate the Py wrapper
-                pybatchcontent = 'import os\n' +\
-                'import sys\n' +\
-                    'import pymqi\n' +\
-                    'queue_manager = \'' + str(mqmanager) + '\'\n' +\
-                    'channel = \'' + str(mqchannel) + '\'\n' +\
-                    'host = \'' + str(mqhost) + '\'\n' +\
-                    'port = \'' + str(mqport) + '\'\n' +\
-                    'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
-                    'message = \"\"\"' + str(msgpayload) + '\"\"\"\n' +\
-                    'conn_info = \'%s(%s)\' % (host, port)\n' +\
-                    'try:\n' +\
-                    '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
-                    '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
-                    '    queue.put(message)\n' +\
-                    '    queue.close()\n' +\
-                    '    qmgr.disconnect()\n' +\
-                    '    print("Success")\n' +\
-                    '    sys.exit(0)\n' +\
-                    'except Exception as e:\n' +\
-                    '   print("Exception: " + str(e))\n' +\
-                    '   sys.exit(0)\n'
+
+                if str(auth_type) in "noauth":
+
+                    helper.log_debug("auth: using authentication none")
+
+                    if str(mqssl) == "0":
+
+                        pybatchcontent = 'import os\n' +\
+                        'import sys\n' +\
+                            'import pymqi\n' +\
+                            'queue_manager = \'' + str(mqmanager) + '\'\n' +\
+                            'channel = \'' + str(mqchannel) + '\'\n' +\
+                            'host = \'' + str(mqhost) + '\'\n' +\
+                            'port = \'' + str(mqport) + '\'\n' +\
+                            'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
+                            'message = \"\"\"' + str(msgpayload) + '\"\"\"\n' +\
+                            'conn_info = \'%s(%s)\' % (host, port)\n' +\
+                            'try:\n' +\
+                            '    qmgr = pymqi.connect(queue_manager, channel, conn_info)\n' +\
+                            '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
+                            '    queue.put(message)\n' +\
+                            '    queue.close()\n' +\
+                            '    qmgr.disconnect()\n' +\
+                            '    print("Success")\n' +\
+                            '    sys.exit(0)\n' +\
+                            'except Exception as e:\n' +\
+                            '   print("Exception: " + str(e))\n' +\
+                            '   sys.exit(0)\n'
+
+                    elif str(mqssl) == "1":
+
+                        pybatchcontent = 'import os\n' +\
+                        'import sys\n' +\
+                            'import pymqi\n' +\
+                            'queue_manager = \'' + str(mqmanager) + '\'\n' +\
+                            'channel = \'' + str(mqchannel) + '\'\n' +\
+                            'host = \'' + str(mqhost) + '\'\n' +\
+                            'port = \'' + str(mqport) + '\'\n' +\
+                            'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
+                            'message = \"\"\"' + str(msgpayload) + '\"\"\"\n' +\
+                            'conn_info = \'%s(%s)\' % (host, port)\n' +\
+                            'ssl_cipher_spec = \'' + str(ssl_cipher_spec) + '\'\n' +\
+                            'key_repo_location = \'' + str(key_repo_location) + '\'\n' +\
+                            'cd = pymqi.CD()\n' +\
+                            'cd.ChannelName = channel\n' +\
+                            'cd.ConnectionName = conn_info\n' +\
+                            'cd.ChannelType = pymqi.CMQC.MQCHT_CLNTCONN\n' +\
+                            'cd.TransportType = pymqi.CMQC.MQXPT_TCP\n' +\
+                            'cd.SSLCipherSpec = ssl_cipher_spec\n' +\
+                            'sco = pymqi.SCO()\n' +\
+                            'sco.KeyRepository = key_repo_location\n' +\
+                            'try:\n' +\
+                            '    qmgr = pymqi.QueueManager(None)\n' +\
+                            '    qmgr.connect_with_options(queue_manager, cd, sco)\n' +\
+                            '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
+                            '    queue.put(message)\n' +\
+                            '    queue.close()\n' +\
+                            '    qmgr.disconnect()\n' +\
+                            '    print("Success")\n' +\
+                            '    sys.exit(0)\n' +\
+                            'except Exception as e:\n' +\
+                            '   print("Exception: " + str(e))\n' +\
+                            '   sys.exit(0)\n'
+
+                elif str(auth_type) in "basic":
+
+                    helper.log_debug("auth: using authentication basic")
+
+                    if str(mqssl) == "0":
+
+                        pybatchcontent = 'import os\n' +\
+                        'import sys\n' +\
+                            'import pymqi\n' +\
+                            'queue_manager = \'' + str(mqmanager) + '\'\n' +\
+                            'channel = \'' + str(mqchannel) + '\'\n' +\
+                            'host = \'' + str(mqhost) + '\'\n' +\
+                            'port = \'' + str(mqport) + '\'\n' +\
+                            'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
+                            'message = \"\"\"' + str(msgpayload) + '\"\"\"\n' +\
+                            'conn_info = \'%s(%s)\' % (host, port)\n' +\
+                            'user = \'' + str(username) + '\'\n' +\
+                            'password = \'' + str(password) + '\'\n' +\
+                            'try:\n' +\
+                            '    qmgr = pymqi.connect(queue_manager, channel, conn_info, user, password)\n' +\
+                            '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
+                            '    queue.put(message)\n' +\
+                            '    queue.close()\n' +\
+                            '    qmgr.disconnect()\n' +\
+                            '    print("Success")\n' +\
+                            '    sys.exit(0)\n' +\
+                            'except Exception as e:\n' +\
+                            '   print("Exception: " + str(e))\n' +\
+                            '   sys.exit(0)\n'
+
+                    elif str(mqssl) == "1":
+
+                        pybatchcontent = 'import os\n' +\
+                        'import sys\n' +\
+                            'import pymqi\n' +\
+                            'queue_manager = \'' + str(mqmanager) + '\'\n' +\
+                            'channel = \'' + str(mqchannel) + '\'\n' +\
+                            'host = \'' + str(mqhost) + '\'\n' +\
+                            'port = \'' + str(mqport) + '\'\n' +\
+                            'queue_name = \'' + str(mqqueuedest) + '\'\n' +\
+                            'message = \"\"\"' + str(msgpayload) + '\"\"\"\n' +\
+                            'conn_info = \'%s(%s)\' % (host, port)\n' +\
+                            'user = \'' + str(username) + '\'\n' +\
+                            'password = \'' + str(password) + '\'\n' +\
+                            'ssl_cipher_spec = \'' + str(ssl_cipher_spec) + '\'\n' +\
+                            'key_repo_location = \'' + str(key_repo_location) + '\'\n' +\
+                            'cd = pymqi.CD()\n' +\
+                            'cd.ChannelName = channel\n' +\
+                            'cd.ConnectionName = conn_info\n' +\
+                            'cd.ChannelType = pymqi.CMQC.MQCHT_CLNTCONN\n' +\
+                            'cd.TransportType = pymqi.CMQC.MQXPT_TCP\n' +\
+                            'cd.SSLCipherSpec = ssl_cipher_spec\n' +\
+                            'sco = pymqi.SCO()\n' +\
+                            'sco.KeyRepository = key_repo_location\n' +\
+                            'try:\n' +\
+                            '    qmgr = pymqi.QueueManager(None)\n' +\
+                            '    qmgr.connect_with_options(queue_manager, cd, sco, user, password)\n' +\
+                            '    queue = pymqi.Queue(qmgr, queue_name)\n' +\
+                            '    queue.put(message)\n' +\
+                            '    queue.close()\n' +\
+                            '    qmgr.disconnect()\n' +\
+                            '    print("Success")\n' +\
+                            '    sys.exit(0)\n' +\
+                            'except Exception as e:\n' +\
+                            '   print("Exception: " + str(e))\n' +\
+                            '   sys.exit(0)\n'
 
                 helper.log_debug("pybatchcontent:={}".format(pybatchcontent))
 
