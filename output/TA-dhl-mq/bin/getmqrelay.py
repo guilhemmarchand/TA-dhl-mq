@@ -24,6 +24,12 @@ import splunklib.client as client
 
 class GetMqReplay(GeneratingCommand):
 
+    thread = Option(
+        doc='''
+        **Syntax:** **thread=****
+        **Description:** thread number for performance and dispatching purposes.''',
+        require=True)
+
     def generate(self, **kwargs):
 
         if self:
@@ -69,7 +75,7 @@ class GetMqReplay(GeneratingCommand):
             if str(mqpassthrough) == 'enabled':
                 search = str(search) + " where status=\"success\""
             elif kvstore_search_filters:
-                search = str(search) + " where status!=\"success\" | search " + str(kvstore_search_filters)
+                search = str(search) + " where status!=\"success\" AND thread=\"" + str(self.thread) + "\" | search " + str(kvstore_search_filters)
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
@@ -80,7 +86,7 @@ class GetMqReplay(GeneratingCommand):
 
             # For row in CSV, generate the _raw
             for row in readCSV:
-                yield {'_time': time.time(), '_raw': str(row), '_key': str(row['_key']), 'message': str(row['message']), 'appname': str(row['appname']), 'region': str(row['region']), 'ctime': str(row['ctime']), 'mtime': str(row['mtime']), 'manager': str(row['manager']), 'channel': str(row['channel']), 'status': str(row['status']), 'queue': str(row['queue']), 'no_max_retry': str(row['no_max_retry']), 'no_attempts': str(row['no_attempts']), 'user': str(row['user']),}
+                yield {'_time': time.time(), '_raw': str(row), '_key': str(row['_key']), 'thread': str(row['thread']), 'message': str(row['message']), 'appname': str(row['appname']), 'region': str(row['region']), 'ctime': str(row['ctime']), 'mtime': str(row['mtime']), 'manager': str(row['manager']), 'channel': str(row['channel']), 'status': str(row['status']), 'queue': str(row['queue']), 'no_max_retry': str(row['no_max_retry']), 'no_attempts': str(row['no_attempts']), 'user': str(row['user']),}
 
         else:
 

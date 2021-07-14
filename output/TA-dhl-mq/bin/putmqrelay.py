@@ -122,8 +122,17 @@ class PutMqRelay(StreamingCommand):
         if not self.dedup:
             self.dedup = 'False'
 
+        # start thread at 0
+        thread = 0
+
         # Loop in the results
         for record in records:
+
+            # increment
+            if thread < 5:
+                thread +=1
+            else:
+                thread = 1
 
             appname = str(record[self.field_appname])
             region = str(record[self.field_region])
@@ -181,6 +190,7 @@ class PutMqRelay(StreamingCommand):
                         # Insert the record
                         collection.data.insert(json.dumps({
                             "_key": str(keyrecord),
+                            "thread": str(thread),
                             "ctime": str(ctime),
                             "mtime": str(mtime),
                             "status": "pending",

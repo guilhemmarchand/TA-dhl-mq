@@ -420,8 +420,8 @@
             ]
         },
         {
-            "name": "mq_publish_message_relay",
-            "label": "MQ messages relay publication",
+            "name": "mq_publish_message_relay_1",
+            "label": "MQ messages relay publication1",
             "description": "This alert allows messages publishing from relay publishers",
             "activeResponse": {
                 "task": [
@@ -456,6 +456,14 @@
                     "defaultValue": "$result.key$",
                     "required": true,
                     "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "thread",
+                    "field": "thread",
+                    "defaultValue": "$result.thread$",
+                    "required": true,
+                    "help": "thread, example: $result.thread$"
                 },
                 {
                     "type": "text",
@@ -525,7 +533,583 @@
                     "type": "text",
                     "label": "ctime",
                     "field": "ctime",
-                    "defaultValue": "$result.ctimes$",
+                    "defaultValue": "$result.ctime$",
+                    "required": true,
+                    "help": "the ctime value, example $result.ctime$"
+                },
+                {
+                    "type": "text",
+                    "label": "mtime",
+                    "field": "mtime",
+                    "defaultValue": "$result.mtime$",
+                    "required": true,
+                    "help": "the mtime value, example $result.mtime$"
+                },
+                {
+                    "type": "text",
+                    "label": "status",
+                    "field": "status",
+                    "defaultValue": "$result.status$",
+                    "required": true,
+                    "help": "the status value, example $result.status$"
+                },
+                {
+                    "type": "text",
+                    "label": "user",
+                    "field": "user",
+                    "defaultValue": "$result.user$",
+                    "required": true,
+                    "help": "the user value, example $result.user$"
+                }
+            ]
+        },
+        {
+            "name": "mq_publish_message_relay_2",
+            "label": "MQ messages relay publication2",
+            "description": "This alert allows messages publishing from relay publishers",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Information Conveyance",
+                    "Information Portrayal"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "1.0.0"
+                        ],
+                        "product": "IBM MQ",
+                        "vendor": "Splunk"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message:relay\"&earliest=0&latest=",
+                "sourcetype": "mq:actions:mq_publish_message:relay"
+            },
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "key",
+                    "field": "key",
+                    "defaultValue": "$result.key$",
+                    "required": true,
+                    "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "thread",
+                    "field": "thread",
+                    "defaultValue": "$result.thread$",
+                    "required": true,
+                    "help": "thread, example: $result.thread$"
+                },
+                {
+                    "type": "text",
+                    "label": "App",
+                    "field": "appname",
+                    "defaultValue": "$result.appname$",
+                    "required": true,
+                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
+                },
+                {
+                    "type": "text",
+                    "label": "Region",
+                    "field": "region",
+                    "defaultValue": "$result.region$",
+                    "required": true,
+                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
+                },
+                {
+                    "type": "text",
+                    "label": "account",
+                    "field": "account",
+                    "defaultValue": "$result.manager$",
+                    "required": true,
+                    "help": "Define the queue manager which euqals to the account name, you can recycle a field resulting from the search, example: $result.manager$"
+                },
+                {
+                    "type": "text",
+                    "label": "MQ Channel",
+                    "field": "mqchannel",
+                    "defaultValue": "$result.channel$",
+                    "required": true,
+                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
+                },
+                {
+                    "type": "text",
+                    "label": "Queue name destination",
+                    "field": "mqqueuedest",
+                    "defaultValue": "$result.queue$",
+                    "required": true,
+                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.queue$"
+                },
+                {
+                    "type": "text",
+                    "label": "Message",
+                    "field": "message",
+                    "defaultValue": "$result.message$",
+                    "required": true,
+                    "help": "The message payload to be relayed, example $result.message$"
+                },
+                {
+                    "type": "text",
+                    "label": "max number of attempts",
+                    "field": "no_max_retry",
+                    "defaultValue": "$result.no_max_retry$",
+                    "required": true,
+                    "help": "The max number of attemps to be performed, example $result.no_max_retry$"
+                },
+                {
+                    "type": "text",
+                    "label": "current number of attempts",
+                    "field": "no_attempts",
+                    "defaultValue": "$result.no_attempts$",
+                    "required": true,
+                    "help": "The current number of attemps that have been performed already, example $result.no_attempts$"
+                },
+                {
+                    "type": "text",
+                    "label": "ctime",
+                    "field": "ctime",
+                    "defaultValue": "$result.ctime$",
+                    "required": true,
+                    "help": "the ctime value, example $result.ctime$"
+                },
+                {
+                    "type": "text",
+                    "label": "mtime",
+                    "field": "mtime",
+                    "defaultValue": "$result.mtime$",
+                    "required": true,
+                    "help": "the mtime value, example $result.mtime$"
+                },
+                {
+                    "type": "text",
+                    "label": "status",
+                    "field": "status",
+                    "defaultValue": "$result.status$",
+                    "required": true,
+                    "help": "the status value, example $result.status$"
+                },
+                {
+                    "type": "text",
+                    "label": "user",
+                    "field": "user",
+                    "defaultValue": "$result.user$",
+                    "required": true,
+                    "help": "the user value, example $result.user$"
+                }
+            ]
+        },
+        {
+            "name": "mq_publish_message_relay_3",
+            "label": "MQ messages relay publication3",
+            "description": "This alert allows messages publishing from relay publishers",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Information Conveyance",
+                    "Information Portrayal"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "1.0.0"
+                        ],
+                        "product": "IBM MQ",
+                        "vendor": "Splunk"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message:relay\"&earliest=0&latest=",
+                "sourcetype": "mq:actions:mq_publish_message:relay"
+            },
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "key",
+                    "field": "key",
+                    "defaultValue": "$result.key$",
+                    "required": true,
+                    "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "thread",
+                    "field": "thread",
+                    "defaultValue": "$result.thread$",
+                    "required": true,
+                    "help": "thread, example: $result.thread$"
+                },
+                {
+                    "type": "text",
+                    "label": "App",
+                    "field": "appname",
+                    "defaultValue": "$result.appname$",
+                    "required": true,
+                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
+                },
+                {
+                    "type": "text",
+                    "label": "Region",
+                    "field": "region",
+                    "defaultValue": "$result.region$",
+                    "required": true,
+                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
+                },
+                {
+                    "type": "text",
+                    "label": "account",
+                    "field": "account",
+                    "defaultValue": "$result.manager$",
+                    "required": true,
+                    "help": "Define the queue manager which euqals to the account name, you can recycle a field resulting from the search, example: $result.manager$"
+                },
+                {
+                    "type": "text",
+                    "label": "MQ Channel",
+                    "field": "mqchannel",
+                    "defaultValue": "$result.channel$",
+                    "required": true,
+                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
+                },
+                {
+                    "type": "text",
+                    "label": "Queue name destination",
+                    "field": "mqqueuedest",
+                    "defaultValue": "$result.queue$",
+                    "required": true,
+                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.queue$"
+                },
+                {
+                    "type": "text",
+                    "label": "Message",
+                    "field": "message",
+                    "defaultValue": "$result.message$",
+                    "required": true,
+                    "help": "The message payload to be relayed, example $result.message$"
+                },
+                {
+                    "type": "text",
+                    "label": "max number of attempts",
+                    "field": "no_max_retry",
+                    "defaultValue": "$result.no_max_retry$",
+                    "required": true,
+                    "help": "The max number of attemps to be performed, example $result.no_max_retry$"
+                },
+                {
+                    "type": "text",
+                    "label": "current number of attempts",
+                    "field": "no_attempts",
+                    "defaultValue": "$result.no_attempts$",
+                    "required": true,
+                    "help": "The current number of attemps that have been performed already, example $result.no_attempts$"
+                },
+                {
+                    "type": "text",
+                    "label": "ctime",
+                    "field": "ctime",
+                    "defaultValue": "$result.ctime$",
+                    "required": true,
+                    "help": "the ctime value, example $result.ctime$"
+                },
+                {
+                    "type": "text",
+                    "label": "mtime",
+                    "field": "mtime",
+                    "defaultValue": "$result.mtime$",
+                    "required": true,
+                    "help": "the mtime value, example $result.mtime$"
+                },
+                {
+                    "type": "text",
+                    "label": "status",
+                    "field": "status",
+                    "defaultValue": "$result.status$",
+                    "required": true,
+                    "help": "the status value, example $result.status$"
+                },
+                {
+                    "type": "text",
+                    "label": "user",
+                    "field": "user",
+                    "defaultValue": "$result.user$",
+                    "required": true,
+                    "help": "the user value, example $result.user$"
+                }
+            ]
+        },
+        {
+            "name": "mq_publish_message_relay_4",
+            "label": "MQ messages relay publication4",
+            "description": "This alert allows messages publishing from relay publishers",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Information Conveyance",
+                    "Information Portrayal"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "1.0.0"
+                        ],
+                        "product": "IBM MQ",
+                        "vendor": "Splunk"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message:relay\"&earliest=0&latest=",
+                "sourcetype": "mq:actions:mq_publish_message:relay"
+            },
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "key",
+                    "field": "key",
+                    "defaultValue": "$result.key$",
+                    "required": true,
+                    "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "thread",
+                    "field": "thread",
+                    "defaultValue": "$result.thread$",
+                    "required": true,
+                    "help": "thread, example: $result.thread$"
+                },
+                {
+                    "type": "text",
+                    "label": "App",
+                    "field": "appname",
+                    "defaultValue": "$result.appname$",
+                    "required": true,
+                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
+                },
+                {
+                    "type": "text",
+                    "label": "Region",
+                    "field": "region",
+                    "defaultValue": "$result.region$",
+                    "required": true,
+                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
+                },
+                {
+                    "type": "text",
+                    "label": "account",
+                    "field": "account",
+                    "defaultValue": "$result.manager$",
+                    "required": true,
+                    "help": "Define the queue manager which euqals to the account name, you can recycle a field resulting from the search, example: $result.manager$"
+                },
+                {
+                    "type": "text",
+                    "label": "MQ Channel",
+                    "field": "mqchannel",
+                    "defaultValue": "$result.channel$",
+                    "required": true,
+                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
+                },
+                {
+                    "type": "text",
+                    "label": "Queue name destination",
+                    "field": "mqqueuedest",
+                    "defaultValue": "$result.queue$",
+                    "required": true,
+                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.queue$"
+                },
+                {
+                    "type": "text",
+                    "label": "Message",
+                    "field": "message",
+                    "defaultValue": "$result.message$",
+                    "required": true,
+                    "help": "The message payload to be relayed, example $result.message$"
+                },
+                {
+                    "type": "text",
+                    "label": "max number of attempts",
+                    "field": "no_max_retry",
+                    "defaultValue": "$result.no_max_retry$",
+                    "required": true,
+                    "help": "The max number of attemps to be performed, example $result.no_max_retry$"
+                },
+                {
+                    "type": "text",
+                    "label": "current number of attempts",
+                    "field": "no_attempts",
+                    "defaultValue": "$result.no_attempts$",
+                    "required": true,
+                    "help": "The current number of attemps that have been performed already, example $result.no_attempts$"
+                },
+                {
+                    "type": "text",
+                    "label": "ctime",
+                    "field": "ctime",
+                    "defaultValue": "$result.ctime$",
+                    "required": true,
+                    "help": "the ctime value, example $result.ctime$"
+                },
+                {
+                    "type": "text",
+                    "label": "mtime",
+                    "field": "mtime",
+                    "defaultValue": "$result.mtime$",
+                    "required": true,
+                    "help": "the mtime value, example $result.mtime$"
+                },
+                {
+                    "type": "text",
+                    "label": "status",
+                    "field": "status",
+                    "defaultValue": "$result.status$",
+                    "required": true,
+                    "help": "the status value, example $result.status$"
+                },
+                {
+                    "type": "text",
+                    "label": "user",
+                    "field": "user",
+                    "defaultValue": "$result.user$",
+                    "required": true,
+                    "help": "the user value, example $result.user$"
+                }
+            ]
+        },
+        {
+            "name": "mq_publish_message_relay_5",
+            "label": "MQ messages relay publication5",
+            "description": "This alert allows messages publishing from relay publishers",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Information Conveyance",
+                    "Information Portrayal"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "1.0.0"
+                        ],
+                        "product": "IBM MQ",
+                        "vendor": "Splunk"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message:relay\"&earliest=0&latest=",
+                "sourcetype": "mq:actions:mq_publish_message:relay"
+            },
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "key",
+                    "field": "key",
+                    "defaultValue": "$result.key$",
+                    "required": true,
+                    "help": "key, example: $result.key$"
+                },
+                {
+                    "type": "text",
+                    "label": "thread",
+                    "field": "thread",
+                    "defaultValue": "$result.thread$",
+                    "required": true,
+                    "help": "thread, example: $result.thread$"
+                },
+                {
+                    "type": "text",
+                    "label": "App",
+                    "field": "appname",
+                    "defaultValue": "$result.appname$",
+                    "required": true,
+                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
+                },
+                {
+                    "type": "text",
+                    "label": "Region",
+                    "field": "region",
+                    "defaultValue": "$result.region$",
+                    "required": true,
+                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
+                },
+                {
+                    "type": "text",
+                    "label": "account",
+                    "field": "account",
+                    "defaultValue": "$result.manager$",
+                    "required": true,
+                    "help": "Define the queue manager which euqals to the account name, you can recycle a field resulting from the search, example: $result.manager$"
+                },
+                {
+                    "type": "text",
+                    "label": "MQ Channel",
+                    "field": "mqchannel",
+                    "defaultValue": "$result.channel$",
+                    "required": true,
+                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
+                },
+                {
+                    "type": "text",
+                    "label": "Queue name destination",
+                    "field": "mqqueuedest",
+                    "defaultValue": "$result.queue$",
+                    "required": true,
+                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.queue$"
+                },
+                {
+                    "type": "text",
+                    "label": "Message",
+                    "field": "message",
+                    "defaultValue": "$result.message$",
+                    "required": true,
+                    "help": "The message payload to be relayed, example $result.message$"
+                },
+                {
+                    "type": "text",
+                    "label": "max number of attempts",
+                    "field": "no_max_retry",
+                    "defaultValue": "$result.no_max_retry$",
+                    "required": true,
+                    "help": "The max number of attemps to be performed, example $result.no_max_retry$"
+                },
+                {
+                    "type": "text",
+                    "label": "current number of attempts",
+                    "field": "no_attempts",
+                    "defaultValue": "$result.no_attempts$",
+                    "required": true,
+                    "help": "The current number of attemps that have been performed already, example $result.no_attempts$"
+                },
+                {
+                    "type": "text",
+                    "label": "ctime",
+                    "field": "ctime",
+                    "defaultValue": "$result.ctime$",
                     "required": true,
                     "help": "the ctime value, example $result.ctime$"
                 },
@@ -560,7 +1144,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R61e11d4",
+        "version": "0.0.0R87ddfbe",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

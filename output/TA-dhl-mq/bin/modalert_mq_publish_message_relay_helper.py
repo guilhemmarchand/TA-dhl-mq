@@ -195,6 +195,10 @@ def process_event(helper, *args, **kwargs):
     key = helper.get_param("key")
     helper.log_debug("key={}".format(key))
 
+    # Get thread
+    thread = helper.get_param("thread")
+    helper.log_debug("thread={}".format(thread))
+
     # Get app
     appname = helper.get_param("appname")
     helper.log_debug("appname={}".format(appname))
@@ -513,6 +517,7 @@ def process_event(helper, *args, **kwargs):
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "user": "' + str(user) \
+                            + '", "thread": "' + str(thread) \
                             + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                     # update the record
@@ -531,6 +536,7 @@ def process_event(helper, *args, **kwargs):
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "user": "' + str(user) \
+                            + '", "thread": "' + str(thread) \
                             + '", "message": "' + str(checkstrforjson(message)) + '"}'
                     response = requests.post(record_url, headers=headers, data=record,
                                             verify=False)
@@ -562,6 +568,7 @@ def process_event(helper, *args, **kwargs):
                             + '", "no_attempts": "' + str(no_attempts) \
                             + '", "no_max_retry": "' + str(no_max_retry) \
                             + '", "user": "' + str(user) \
+                            + '", "thread": "' + str(thread) \
                             + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                     # update the record
