@@ -42,12 +42,6 @@ class PutMqRelay(StreamingCommand):
         **Description:** field name containing the MQ manager value to be used.''',
         require=True)
 
-    field_channel = Option(
-        doc='''
-        **Syntax:** **field_channel=****
-        **Description:** field name containing the MQ channel value to be used.''',
-        require=True)
-
     field_queue = Option(
         doc='''
         **Syntax:** **field_queue=****
@@ -128,7 +122,6 @@ class PutMqRelay(StreamingCommand):
             appname = str(record[self.field_appname])
             region = str(record[self.field_region])
             manager = str(record[self.field_manager])
-            channel = str(record[self.field_channel])
             queue = str(record[self.field_queue])
             message = str(record[self.field_message])
 
@@ -145,7 +138,6 @@ class PutMqRelay(StreamingCommand):
             appname_len = len(appname)
             region_len = len(region)
             manager_len = len(manager)
-            channel_len = len(channel)
             queue_len = len(queue)
             message_len = len(message)
             
@@ -158,7 +150,7 @@ class PutMqRelay(StreamingCommand):
             result = None
 
             # Insert in the KV
-            if message and (message_len>0 and appname_len>0 and region_len>0 and manager_len>0 and channel_len>0 and queue_len>0):
+            if message and (message_len>0 and appname_len>0 and region_len>0 and manager_len>0 and queue_len>0):
 
                 # if dedup, verifies if a key record exists already, otherwise isdup is False
                 isdup = False
@@ -185,7 +177,6 @@ class PutMqRelay(StreamingCommand):
                             "mtime": str(mtime),
                             "status": "pending",
                             "manager": str(manager),
-                            "channel": str(channel),
                             "queue": str(queue),
                             "appname": str(appname),
                             "region": str(region),
@@ -210,10 +201,10 @@ class PutMqRelay(StreamingCommand):
 
             else:
                 action = "failure"
-                result = "Is either message/appname/region/manager/channel/queue empty?"
+                result = "Is either message/appname/region/manager/queue empty?"
                 status = "refused"
 
             # yield - return in Splunk a resulting table
-            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'channel': str(channel), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user)}
+            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user)}
 
 dispatch(PutMqRelay, sys.argv, sys.stdin, sys.stdout, __name__)

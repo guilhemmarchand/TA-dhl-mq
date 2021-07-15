@@ -70,14 +70,14 @@ fields_advanced_configuration = [
         validator=None
     ), 
     field.RestField(
-        'python_bin_path',
+        'mqclient_bin_path',
         required=True,
         encrypted=False,
-        default='/usr/bin/python3',
+        default='/opt/mqm',
         validator=None
     ), 
     field.RestField(
-        'mqclient_bin_path',
+        'q_bin_path',
         required=True,
         encrypted=False,
         default='/opt/mqm',

@@ -16,7 +16,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
   </search>
   <search id="baseSearchDropdown" depends="$showTable$">
     <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$
-| stats count by host, queue_manager
+| stats count by host, queue_manager, appname, region
 </query>
     <earliest>$timerange.earliest$</earliest>
     <latest>$timerange.latest$</latest>
@@ -35,7 +35,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
         <option name="rangeValues">[0]</option>
@@ -59,7 +59,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
         <option name="rangeValues">[0]</option>
@@ -83,7 +83,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xf1813f"]</option>
         <option name="rangeValues">[0]</option>
@@ -107,7 +107,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xf1813f"]</option>
         <option name="rangeValues">[0]</option>
@@ -131,7 +131,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
         <option name="rangeValues">[0]</option>
@@ -162,7 +162,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
         <option name="rangeValues">[0]</option>
@@ -186,7 +186,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
         <option name="rangeValues">[0]</option>
@@ -210,7 +210,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xf1813f"]</option>
         <option name="rangeValues">[0]</option>
@@ -234,7 +234,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">all</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
         <option name="rangeValues">[0]</option>
@@ -347,14 +347,40 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         <fieldForLabel>queue_manager</fieldForLabel>
         <fieldForValue>queue_manager</fieldForValue>
       </input>
+      <input type="dropdown" token="appname" searchWhenChanged="true">
+        <label>Appname:</label>
+        <choice value="*">ANY</choice>
+        <default>*</default>
+        <prefix>appname="</prefix>
+        <suffix>"</suffix>
+        <initialValue>*</initialValue>
+        <search base="baseSearchDropdown">
+          <query>search $host$ $queue_manager$ | stats count by appname | table appname | dedup appname | sort appname</query>
+        </search>
+        <fieldForLabel>appname</fieldForLabel>
+        <fieldForValue>appname</fieldForValue>
+      </input>
+      <input type="dropdown" token="region" searchWhenChanged="true">
+        <label>Region:</label>
+        <choice value="*">ANY</choice>
+        <default>*</default>
+        <prefix>region="</prefix>
+        <suffix>"</suffix>
+        <initialValue>*</initialValue>
+        <search base="baseSearchDropdown">
+          <query>search $host$ $queue_manager$ $appname$ | stats count by region | table region | dedup region | sort region</query>
+        </search>
+        <fieldForLabel>region</fieldForLabel>
+        <fieldForValue>region</fieldForValue>
+      </input>
       <table>
         <search depends="$showTable$">
-          <query>(index="_internal" OR index="cim_modactions") signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$
+          <query>(index="_internal" OR index="cim_modactions") signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$
 | eval status=case(
 match(_raw, "message publication success"), "success",
 match(_raw, "failure in message publication"), "temporary_failure",
 match(_raw, "MQ message publish permanent failure"), "permanent_failure")
-| table _time, host, status, queue_manager, channel, queue, signature
+| table _time, host, status, appname, region, queue_manager, channel, queue, signature
 | eval status=case(status="success", status . " ✔️", status="*_failure", status . " ⭕")
 | sort - limit=0 _time</query>
           <earliest>$timerange.earliest$</earliest>

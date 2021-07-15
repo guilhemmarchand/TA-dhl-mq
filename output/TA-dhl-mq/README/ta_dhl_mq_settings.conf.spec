@@ -8,6 +8,6 @@ kvstore_retention =
 kvstore_instance = 
 bearer_token = 
 kvstore_search_filters = 
-python_bin_path = 
 mqclient_bin_path = 
+q_bin_path = 
 mqpassthrough = 

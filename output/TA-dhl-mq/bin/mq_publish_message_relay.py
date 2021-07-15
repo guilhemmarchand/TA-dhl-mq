@@ -32,10 +32,6 @@ class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
             self.log_error('account is a mandatory parameter, but its value is None.')
             return False
 
-        if not self.get_param("mqchannel"):
-            self.log_error('mqchannel is a mandatory parameter, but its value is None.')
-            return False
-
         if not self.get_param("mqqueuedest"):
             self.log_error('mqqueuedest is a mandatory parameter, but its value is None.')
             return False

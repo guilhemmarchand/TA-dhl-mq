@@ -1,9 +1,7 @@
 [<name>]
 mqhost = 
 mqport = 
-mqssl = 
-ssl_cipher_spec = 
-key_repo_location = 
+mqchannel = 
 username = 
 password = 
 client_id = 

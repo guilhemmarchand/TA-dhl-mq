@@ -65,6 +65,16 @@
                             "defaultValue": "1414"
                         },
                         {
+                            "type": "text",
+                            "label": "Queue Channel",
+                            "help": "Enter the name of the channel to be used for this Queue Manager.",
+                            "field": "mqchannel",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "SPLUNK.APP.SVRCONN"
+                        },
+                        {
                             "type": "oauth",
                             "field": "oauth",
                             "label": "Not used",
@@ -117,55 +127,6 @@
                                 "oauth_state_enabled": false
                             },
                             "defaultValue": "noauth"
-                        },
-                        {
-                            "type": "radio",
-                            "label": "Enable SSL/TLS",
-                            "field": "mqssl",
-                            "defaultValue": "no",
-                            "help": "Define if this Queue Manager uses SSL/TLS or not",
-                            "required": true,
-                            "options": {
-                                "items": [
-                                    {
-                                        "value": "yes",
-                                        "label": "Yes"
-                                    },
-                                    {
-                                        "value": "no",
-                                        "label": "No"
-                                    }
-                                ],
-                                "display": true
-                            }
-                        },
-                        {
-                            "type": "singleSelect",
-                            "label": "SSL/TLS cipher spec",
-                            "options": {
-                                "disableSearch": true,
-                                "autoCompleteFields": [
-                                    {
-                                        "value": "TLS_RSA_WITH_AES_256_CBC_SHA",
-                                        "label": "TLS_RSA_WITH_AES_256_CBC_SHA"
-                                    }
-                                ],
-                                "display": true
-                            },
-                            "help": "(required for SSL only) If using SSL/TLS, specify the SSL cipher spec",
-                            "field": "ssl_cipher_spec",
-                            "defaultValue": "TLS_RSA_WITH_AES_256_CBC_SHA",
-                            "required": false
-                        },
-                        {
-                            "type": "text",
-                            "label": "SSL key repo location",
-                            "help": "(required for SSL only) If using SSl/TLS, specify the local path to the key repo location.",
-                            "field": "key_repo_location",
-                            "options": {
-                                "display": true
-                            },
-                            "defaultValue": "/var/mqm/ssl-db/client/KeyringClient"
                         }
                     ],
                     "title": "MQ Queue Manager Account"
@@ -288,20 +249,20 @@
                         },
                         {
                             "type": "text",
-                            "label": "Python path",
-                            "help": "Full path of the Python interpreter to be used.",
-                            "field": "python_bin_path",
+                            "label": "MQ client path",
+                            "help": "MQ Series client librairies install path.",
+                            "field": "mqclient_bin_path",
                             "options": {
                                 "display": true
                             },
-                            "defaultValue": "/usr/bin/python3",
+                            "defaultValue": "/opt/mqm",
                             "required": true
                         },
                         {
                             "type": "text",
-                            "label": "MQ client path",
-                            "help": "MQ Series client librairies install path.",
-                            "field": "mqclient_bin_path",
+                            "label": "Q command path",
+                            "help": "Enter the path where the q executable is located, defaults to the same path as the MQ client.",
+                            "field": "q_bin_path",
                             "options": {
                                 "display": true
                             },
@@ -395,14 +356,6 @@
                 },
                 {
                     "type": "text",
-                    "label": "MQ Channel",
-                    "field": "mqchannel",
-                    "defaultValue": "",
-                    "required": true,
-                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
-                },
-                {
-                    "type": "text",
                     "label": "Queue name destination",
                     "field": "mqqueuedest",
                     "defaultValue": "",
@@ -483,14 +436,6 @@
                 },
                 {
                     "type": "text",
-                    "label": "MQ Channel",
-                    "field": "mqchannel",
-                    "defaultValue": "$result.channel$",
-                    "required": true,
-                    "help": "Please enter the MQ Channel, you can recycle a field resulting from the search, example: $result.channel$"
-                },
-                {
-                    "type": "text",
                     "label": "Queue name destination",
                     "field": "mqqueuedest",
                     "defaultValue": "$result.queue$",
@@ -560,7 +505,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R61e11d4",
+        "version": "0.0.0R87ddfbe",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

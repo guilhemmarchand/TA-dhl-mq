@@ -30,24 +30,10 @@ fields = [
         validator=None
     ), 
     field.RestField(
-        'mqssl',
-        required=True,
-        encrypted=False,
-        default='no',
-        validator=None
-    ), 
-    field.RestField(
-        'ssl_cipher_spec',
+        'mqchannel',
         required=False,
         encrypted=False,
-        default='TLS_RSA_WITH_AES_256_CBC_SHA',
-        validator=None
-    ), 
-    field.RestField(
-        'key_repo_location',
-        required=False,
-        encrypted=False,
-        default='/var/mqm/ssl-db/client/KeyringClient',
+        default='SPLUNK.APP.SVRCONN',
         validator=None
     ), 
     field.RestField(
