@@ -55,6 +55,7 @@ def process_event(helper, *args, **kwargs):
     # imports
     import solnlib
     import os
+    import sys
     import uuid
     import subprocess
     import splunk.entity
@@ -62,9 +63,6 @@ def process_event(helper, *args, **kwargs):
     import splunklib.client as client
     import time
     import requests
-
-    account = helper.get_param("account")
-    helper.log_debug("account={}".format(account))
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -76,7 +74,7 @@ def process_event(helper, *args, **kwargs):
 
     # Get splunkd port
     entity = splunk.entity.getEntity('/server', 'settings',
-                                     namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
+                                    namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
     mydict = entity
     splunkd_port = mydict['mgmtHostPort']
     helper.log_debug("splunkd_port={}".format(splunkd_port))
@@ -116,45 +114,6 @@ def process_event(helper, *args, **kwargs):
     # conf manager
     app = 'TA-dhl-mq'
 
-    # get account details
-    account_cfm = solnlib.conf_manager.ConfManager(
-        session_key,
-        app,
-        realm="__REST_CREDENTIAL__#{}#configs/conf-ta_dhl_mq_account".format(app))
-    splunk_ta_account_conf = account_cfm.get_conf("ta_dhl_mq_account").get_all()
-    helper.log_debug("account={}".format(splunk_ta_account_conf))
-
-    # account details
-    account_details = splunk_ta_account_conf[account]
-
-    # Get authentication type
-    auth_type = account_details.get("auth_type", 0)
-    helper.log_debug("auth_type={}".format(auth_type))
-
-    # Get username
-    username = account_details.get("username", 0)
-    helper.log_debug("username={}".format(username))
-
-    # Get password
-    password = account_details.get("password", 0)
-    helper.log_debug("password={}".format(password))
-
-    # get mqmanager
-    mqmanager = str(account)
-    helper.log_debug("mqmanager={}".format(mqmanager))
-
-    # Get mqhost
-    mqhost = account_details.get("mqhost", 0)
-    helper.log_debug("mqhost={}".format(mqhost))
-
-    # Get mqport
-    mqport = account_details.get("mqport", 0)
-    helper.log_debug("mqport={}".format(mqport))
-
-    # Get mqchannel
-    mqchannel = account_details.get("mqchannel", 0)
-    helper.log_debug("mqchannel={}".format(mqchannel))
-
     # Get mqclient_bin_path
     mqclient_bin_path = helper.get_global_setting("mqclient_bin_path")
     helper.log_debug("mqclient_bin_path={}".format(mqclient_bin_path))
@@ -179,247 +138,295 @@ def process_event(helper, *args, **kwargs):
     kvstore_retention_seconds = int(float(kvstore_retention) * 3600)
     helper.log_debug("kvstore_retention_seconds={}".format(kvstore_retention_seconds))
 
-    #
-    # Alert params
-    #
+    # Loop within events and proceed
 
-    # Get key
-    key = helper.get_param("key")
-    helper.log_debug("key={}".format(key))
+    events = helper.get_events()
+    for event in events:
+        helper.log_debug("event={}".format(event))
 
-    # Get app
-    appname = helper.get_param("appname")
-    helper.log_debug("appname={}".format(appname))
+        account = helper.get_param("account")
+        helper.log_debug("account={}".format(account))
 
-    # Get region
-    region = helper.get_param("region")
-    helper.log_debug("region={}".format(region))
+        # get account details
+        account_cfm = solnlib.conf_manager.ConfManager(
+            session_key,
+            app,
+            realm="__REST_CREDENTIAL__#{}#configs/conf-ta_dhl_mq_account".format(app))
+        splunk_ta_account_conf = account_cfm.get_conf("ta_dhl_mq_account").get_all()
+        helper.log_debug("account={}".format(splunk_ta_account_conf))
 
-    # Get mqqueuedest
-    mqqueuedest = helper.get_param("mqqueuedest")
-    helper.log_debug("mqqueuedest={}".format(mqqueuedest))
+        # account details
+        account_details = splunk_ta_account_conf[account]
 
-    # Get message
-    message = helper.get_param("message")
-    helper.log_debug("message={}".format(message))
+        # Get authentication type
+        auth_type = account_details.get("auth_type", 0)
+        helper.log_debug("auth_type={}".format(auth_type))
 
-    # Get no_max_retry
-    no_max_retry = int(helper.get_param("no_max_retry"))
-    helper.log_debug("no_max_retry={}".format(no_max_retry))
+        # Get username
+        username = account_details.get("username", 0)
+        helper.log_debug("username={}".format(username))
 
-    # Get no_attempts
-    no_attempts = int(helper.get_param("no_attempts"))
-    helper.log_debug("no_attempts={}".format(no_attempts))
+        # Get password
+        password = account_details.get("password", 0)
+        helper.log_debug("password={}".format(password))
 
-    # Get ctime
-    ctime = helper.get_param("ctime")
-    helper.log_debug("ctime={}".format(ctime))
+        # get mqmanager
+        mqmanager = str(account)
+        helper.log_debug("mqmanager={}".format(mqmanager))
 
-    # Get mtime
-    mtime = helper.get_param("mtime")
-    helper.log_debug("mtime={}".format(mtime))
+        # Get mqhost
+        mqhost = account_details.get("mqhost", 0)
+        helper.log_debug("mqhost={}".format(mqhost))
 
-    # Get status
-    status = helper.get_param("status")
-    helper.log_debug("status={}".format(status))
+        # Get mqport
+        mqport = account_details.get("mqport", 0)
+        helper.log_debug("mqport={}".format(mqport))
 
-    # Get user
-    user = helper.get_param("user")
-    helper.log_debug("user={}".format(user))
+        # Get mqchannel
+        mqchannel = account_details.get("mqchannel", 0)
+        helper.log_debug("mqchannel={}".format(mqchannel))
 
-    # Set record_url
-    record_url = str(kv_url) + str(key)
+        #
+        # Alert params
+        #
 
-    #
-    # START LOGIC 
-    #
+        # Get key
+        key = helper.get_param("key")
+        helper.log_debug("key={}".format(key))
 
-    # if passthrough mode is enabled, this instance will only handle messages that were successfully published
+        # Get app
+        appname = helper.get_param("appname")
+        helper.log_debug("appname={}".format(appname))
 
-    if str(mqpassthrough) == "enabled":
+        # Get region
+        region = helper.get_param("region")
+        helper.log_debug("region={}".format(region))
 
-        # get the record age in seconds
-        record_age = int(round(float(time.time()) - float(ctime), 0))
-        helper.log_debug("record_age={}".format(record_age))
+        # Get mqqueuedest
+        mqqueuedest = helper.get_param("mqqueuedest")
+        helper.log_debug("mqqueuedest={}".format(mqqueuedest))
 
-        # On the master instance, we handle the lifecyle of messages that were successfully published, and their deletion upon retention reached
-        if str(status) in ("success") and str(kvstore_eviction) == "delete":
-            logmsg = 'record has been successfully published and kvstore_eviction is delete.'
-            helper.log_debug(logmsg)
+        # Get message
+        message = helper.get_param("message")
+        helper.log_debug("message={}".format(message))
 
-            delete_record(helper, key, record_url, headers)
+        # Get no_max_retry
+        no_max_retry = int(helper.get_param("no_max_retry"))
+        helper.log_debug("no_max_retry={}".format(no_max_retry))
 
-        elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
-            logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
-            helper.log_debug(logmsg)
+        # Get no_attempts
+        no_attempts = int(helper.get_param("no_attempts"))
+        helper.log_debug("no_attempts={}".format(no_attempts))
 
-            if record_age >= kvstore_retention_seconds:
+        # Get ctime
+        ctime = helper.get_param("ctime")
+        helper.log_debug("ctime={}".format(ctime))
+
+        # Get mtime
+        mtime = helper.get_param("mtime")
+        helper.log_debug("mtime={}".format(mtime))
+
+        # Get status
+        status = helper.get_param("status")
+        helper.log_debug("status={}".format(status))
+
+        # Get user
+        user = helper.get_param("user")
+        helper.log_debug("user={}".format(user))
+
+        # Set record_url
+        record_url = str(kv_url) + str(key)
+
+        #
+        # START LOGIC 
+        #
+
+        # if passthrough mode is enabled, this instance will only handle messages that were successfully published
+
+        if str(mqpassthrough) == "enabled":
+
+            # get the record age in seconds
+            record_age = int(round(float(time.time()) - float(ctime), 0))
+            helper.log_debug("record_age={}".format(record_age))
+
+            # On the master instance, we handle the lifecyle of messages that were successfully published, and their deletion upon retention reached
+            if str(status) in ("success") and str(kvstore_eviction) == "delete":
+                logmsg = 'record has been successfully published and kvstore_eviction is delete.'
+                helper.log_debug(logmsg)
+
                 delete_record(helper, key, record_url, headers)
-            else:
-                logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
-                    + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
-                helper.log_info(logmsg)
 
-    elif str(mqpassthrough) == "disabled":
+            elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
+                logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
+                helper.log_debug(logmsg)
 
-        # get the record age in seconds
-        record_age = int(round(float(time.time()) - float(ctime), 0))
-        helper.log_debug("record_age={}".format(record_age))
-
-        # If the record submission is canceled
-        if str(status) in ("permanent_failure") and str(kvstore_eviction) == "delete":
-            logmsg = 'record is in permanent failure status and kvstore_eviction is delete.'
-            helper.log_debug(logmsg)
-
-            delete_record(helper, key, record_url, headers)
-
-        elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
-            logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
-            helper.log_debug(logmsg)
-
-            if record_age >= kvstore_retention_seconds:
-                delete_record(helper, key, record_url, headers)
-            else:
-                logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
-                    + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
-                helper.log_info(logmsg)
-
-        # If the record is to be processed 
-        elif str(status) in ("pending", "temporary_failure"):
-
-            # Unfortunately loading the pymqi module natively from Splunk has not been successful
-            # Therefore, we will rely on the system with a fairly simple logic:
-            # For each message to be submitted, create a single Python batch file and a Shell wrapper
-            # The reason why we need a shell wrapper is to encapsulate the Shell wrapper is the right environment variables we need
-
-            # first, let's create a folder to temporary store our batch files
-            SPLUNK_HOME = os.environ["SPLUNK_HOME"]
-            batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
-            if not os.path.isdir(batchfolder):
-                try:
-                    os.makedirs(batchfolder)
-                except Exception as e:
-                    helper.log_error("batch folder coult not be created!={}".format(e))
-
-            # if the max number of attemps has not been reached
-            if no_attempts < no_max_retry:
-
-                # increment
-                no_attempts +=1 
-
-                logmsg = 'MQ message publish tempoary failure, attempting publishing message from collection key=' + str(key) \
-                    + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
-                helper.log_info(logmsg)
-
-                # generate a random uuid to name the batch
-                uuid = uuid.uuid4()
-
-                # calculate the length of the message to be published
-                msgpayload_len = len(str(message))
-
-                # Generate Shell and Python batch files
-                shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
-                batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
-
-                shellcontent = '#!/bin/bash\n' +\
-                '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
-                'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-                str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + '\n' +\
-                'RETCODE=$?\n' +\
-                'if [ $RETCODE -ne 0 ]; then\n' +\
-                'echo "Failure with exit code $RETCODE"\n' +\
-                'else\n' +\
-                'echo "Success"\n' +\
-                'fi\n' +\
-                'exit $RETCODE'
-
-                helper.log_debug("shellcontent:={}".format(shellcontent))
-
-                with open(str(shellbatchname), 'w') as f:
-                    f.write(shellcontent)
-                os.chmod(str(shellbatchname), 0o740)
-
-                with open(str(batchfile), 'w') as f:
-                    f.write(str(message))
-
-                # Execute the Shell batch now
-                output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
-                helper.log_debug("output={}".format(output))
-
-                # purge both baches
-                os.remove(str(shellbatchname))
-                os.remove(str(batchfile))
-
-                # From the output of the subprocess, determine the publication status
-                # If an exception was raised, it will be added to the error message
-                if "Success" in str(output):
-                    logmsg = "message publication success, queue_manager=" + str(mqmanager) \
-                    + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                    + ", appname=" + str(appname) + ", region=" + str(region) \
-                    + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                if record_age >= kvstore_retention_seconds:
+                    delete_record(helper, key, record_url, headers)
+                else:
+                    logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
+                        + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
                     helper.log_info(logmsg)
 
-                    # Update the KVstore record
-                    record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                            + '", "status": "success", "manager": "' + str(mqmanager) \
-                            + '", "queue": "' + str(mqqueuedest) \
-                            + '", "appname": "' + str(appname) \
-                            + '", "region": "' + str(region) \
-                            + '", "no_attempts": "' + str(no_attempts) \
-                            + '", "no_max_retry": "' + str(no_max_retry) \
-                            + '", "user": "' + str(user) \
-                            + '", "message": "' + str(checkstrforjson(message)) + '"}'
+            return 0
 
-                    # update the record
-                    update_record(helper, record, record_url, headers)
+        elif str(mqpassthrough) == "disabled":
+
+            # get the record age in seconds
+            record_age = int(round(float(time.time()) - float(ctime), 0))
+            helper.log_debug("record_age={}".format(record_age))
+
+            # If the record submission is canceled
+            if str(status) in ("permanent_failure") and str(kvstore_eviction) == "delete":
+                logmsg = 'record is in permanent failure status and kvstore_eviction is delete.'
+                helper.log_debug(logmsg)
+
+                delete_record(helper, key, record_url, headers)
+                return 0
+
+            elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
+                logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
+                helper.log_debug(logmsg)
+
+                if record_age >= kvstore_retention_seconds:
+                    delete_record(helper, key, record_url, headers)
+                else:
+                    logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
+                        + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
+                    helper.log_info(logmsg)
+                return 0
+
+            # If the record is to be processed 
+            elif str(status) in ("pending", "temporary_failure"):
+
+                # first, let's create a folder to temporary store our batch files
+                SPLUNK_HOME = os.environ["SPLUNK_HOME"]
+                batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
+                if not os.path.isdir(batchfolder):
+                    try:
+                        os.makedirs(batchfolder)
+                    except Exception as e:
+                        helper.log_error("batch folder coult not be created!={}".format(e))
+
+                # if the max number of attemps has not been reached
+                if no_attempts < no_max_retry:
+
+                    # increment
+                    no_attempts +=1 
+
+                    logmsg = 'MQ message publication relay, attempting publishing message from collection key=' + str(key) \
+                        + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
+                    helper.log_info(logmsg)
+
+                    # generate a random uuid to name the batch
+                    uuid = uuid.uuid4()
+
+                    # calculate the length of the message to be published
+                    msgpayload_len = len(str(message))
+
+                    # Generate Shell and batch files
+                    shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
+                    batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
+
+                    shellcontent = '#!/bin/bash\n' +\
+                    '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
+                    'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
+                    str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + '\n' +\
+                    'RETCODE=$?\n' +\
+                    'if [ $RETCODE -ne 0 ]; then\n' +\
+                    'echo "Failure with exit code $RETCODE"\n' +\
+                    'else\n' +\
+                    'echo "Success"\n' +\
+                    'fi\n' +\
+                    'exit $RETCODE'
+
+                    helper.log_debug("shellcontent:={}".format(shellcontent))
+
+                    with open(str(shellbatchname), 'w') as f:
+                        f.write(shellcontent)
+                    os.chmod(str(shellbatchname), 0o740)
+
+                    with open(str(batchfile), 'w') as f:
+                        f.write(str(message))
+
+                    # Execute the Shell batch now
+                    output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+                    helper.log_debug("output={}".format(output))
+
+                    # purge both baches
+                    os.remove(str(shellbatchname))
+                    os.remove(str(batchfile))
+
+                    # From the output of the subprocess, determine the publication status
+                    # If an exception was raised, it will be added to the error message
+                    if "Success" in str(output):
+                        logmsg = "message publication success, queue_manager=" + str(mqmanager) \
+                        + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                        + ", appname=" + str(appname) + ", region=" + str(region) \
+                        + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                        helper.log_info(logmsg)
+
+                        # Update the KVstore record
+                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                + '", "status": "success", "manager": "' + str(mqmanager) \
+                                + '", "queue": "' + str(mqqueuedest) \
+                                + '", "appname": "' + str(appname) \
+                                + '", "region": "' + str(region) \
+                                + '", "no_attempts": "' + str(no_attempts) \
+                                + '", "no_max_retry": "' + str(no_max_retry) \
+                                + '", "user": "' + str(user) \
+                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
+
+                        # update the record
+                        update_record(helper, record, record_url, headers)
+                        return 0
+
+                    else:
+                        logmsg = "failure in message publication for record key=" + str(key) + "with exception: " + str(output)
+                        helper.log_error(logmsg)
+
+                        # Update the KVstore record
+                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
+                                + '", "queue": "' + str(mqqueuedest) \
+                                + '", "appname": "' + str(appname) \
+                                + '", "region": "' + str(region) \
+                                + '", "no_attempts": "' + str(no_attempts) \
+                                + '", "no_max_retry": "' + str(no_max_retry) \
+                                + '", "user": "' + str(user) \
+                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
+                        response = requests.post(record_url, headers=headers, data=record,
+                                                verify=False)
+
+                        # update the record
+                        update_record(helper, record, record_url, headers)
+                        return 0
 
                 else:
-                    logmsg = "failure in message publication for record key=" + str(key) + "with exception: " + str(output)
+
+                    logmsg = 'MQ message publish permanent failure for record key=' + str(key) \
+                        + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled'
                     helper.log_error(logmsg)
 
-                    # Update the KVstore record
-                    record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                            + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
-                            + '", "queue": "' + str(mqqueuedest) \
-                            + '", "appname": "' + str(appname) \
-                            + '", "region": "' + str(region) \
-                            + '", "no_attempts": "' + str(no_attempts) \
-                            + '", "no_max_retry": "' + str(no_max_retry) \
-                            + '", "user": "' + str(user) \
-                            + '", "message": "' + str(checkstrforjson(message)) + '"}'
-                    response = requests.post(record_url, headers=headers, data=record,
-                                            verify=False)
+                    if str(kvstore_eviction) == "delete":
+                        helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
 
-                    # update the record
-                    update_record(helper, record, record_url, headers)
+                        # delete the record
+                        delete_record(helper, key, record_url, headers)
 
-            else:
+                    elif str(kvstore_eviction) == "preserve":
+                        helper.log_info("kvstore_eviction: tagging as permanent_failure and preserving the record with key=" + str(key))
 
-                logmsg = 'MQ message publish permanent failure for record key=' + str(key) \
-                    + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled'
-                helper.log_error(logmsg)
+                        # Update the KVstore record
+                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
+                                + '", "queue": "' + str(mqqueuedest) \
+                                + '", "appname": "' + str(appname) \
+                                + '", "region": "' + str(region) \
+                                + '", "no_attempts": "' + str(no_attempts) \
+                                + '", "no_max_retry": "' + str(no_max_retry) \
+                                + '", "user": "' + str(user) \
+                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
-                if str(kvstore_eviction) == "delete":
-                    helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
-
-                    # delete the record
-                    delete_record(helper, key, record_url, headers)
-
-                elif str(kvstore_eviction) == "preserve":
-                    helper.log_info("kvstore_eviction: tagging as permanent_failure and preserving the record with key=" + str(key))
-
-                    # Update the KVstore record
-                    record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                            + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
-                            + '", "queue": "' + str(mqqueuedest) \
-                            + '", "appname": "' + str(appname) \
-                            + '", "region": "' + str(region) \
-                            + '", "no_attempts": "' + str(no_attempts) \
-                            + '", "no_max_retry": "' + str(no_max_retry) \
-                            + '", "user": "' + str(user) \
-                            + '", "message": "' + str(checkstrforjson(message)) + '"}'
-
-                    # update the record
-                    update_record(helper, record, record_url, headers)
-
-    return 0
+                        # update the record
+                        update_record(helper, record, record_url, headers)
+                        return 0

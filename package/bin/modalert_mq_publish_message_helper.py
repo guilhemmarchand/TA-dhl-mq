@@ -160,17 +160,6 @@ def process_event(helper, *args, **kwargs):
         except Exception as e:
             helper.log_error("batch folder coult not be created!={}".format(e))
 
-    # works in p2
-
-    #cmd = "unset LIBPATH; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/mqm/lib64; /usr/bin/python2 /tmp/test.py"
-    #process = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    #output = process.communicate()[0]
-    #helper.log_debug("output={}".format(output))
-
-    # works in both?
-    #output = subprocess.check_output(["/bin/bash", "/tmp/test.sh"],universal_newlines=True)
-    #helper.log_debug("output={}".format(output))
-
     # Loop within events and proceed
 
     events = helper.get_events()
@@ -209,7 +198,7 @@ def process_event(helper, *args, **kwargs):
                 # init the attempts counter
                 no_attempts = 1
 
-                # Generate Shell and Python batch files
+                # Generate Shell and batch files
                 shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
                 batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
 
@@ -269,6 +258,7 @@ def process_event(helper, *args, **kwargs):
                             'content={}'.format(record_url, record, response.status_code, response.text))
                     else:
                         helper.log_debug("Kvstore saving is successful")
+                    return 0
 
                 else:
                     logmsg = "failure in message publication with exception: " + str(output)                    
@@ -293,6 +283,7 @@ def process_event(helper, *args, **kwargs):
                             'content={}'.format(record_url, record, response.status_code, response.text))
                     else:
                         helper.log_debug("Kvstore saving is successful")
+                    return 0
 
             # Stored in a KVstore to be processed
             else:
@@ -317,6 +308,7 @@ def process_event(helper, *args, **kwargs):
                         'content={}'.format(record_url, record, response.status_code, response.text))
                 else:
                     helper.log_debug("Kvstore saving is successful")
+                return 0
 
         # message is empty!
         else:
