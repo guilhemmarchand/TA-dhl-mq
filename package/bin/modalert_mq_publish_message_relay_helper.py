@@ -57,6 +57,7 @@ def process_event(helper, *args, **kwargs):
     import os
     import sys
     import uuid
+    import hashlib
     import subprocess
     import splunk.entity
     import splunk.Intersplunk
@@ -298,12 +299,22 @@ def process_event(helper, *args, **kwargs):
             # If the record is to be processed 
             elif str(status) in ("pending", "temporary_failure"):
 
-                # first, let's create a folder to temporary store our batch files
+                # set SPLUNK_HOME
                 SPLUNK_HOME = os.environ["SPLUNK_HOME"]
+
+                # first, let's create a folder to temporary store our batch files
                 batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
                 if not os.path.isdir(batchfolder):
                     try:
                         os.makedirs(batchfolder)
+                    except Exception as e:
+                        helper.log_error("batch folder coult not be created!={}".format(e))
+
+                # second, create a folder to temporary store our mass batch files
+                massbatchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/massbatch"
+                if not os.path.isdir(massbatchfolder):
+                    try:
+                        os.makedirs(massbatchfolder)
                     except Exception as e:
                         helper.log_error("batch folder coult not be created!={}".format(e))
 
@@ -317,89 +328,236 @@ def process_event(helper, *args, **kwargs):
                         + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
                     helper.log_info(logmsg)
 
-                    # generate a random uuid to name the batch
-                    uuid = uuid.uuid4()
+                    # define if multiline
+                    ismultiline = False
+                    if message.count('\n') > 2:
+                        ismultiline = True
+                        helper.log_debug("message is multiline")
+                    else:
+                        helper.log_debug("message is singleline")
+
+                    # define a uuid conditionally to name the batches
+                    if ismultiline:
+                        uuid = uuid.uuid4()
+                    else:
+                        uuidstr = str(appname) + ":" + str(region) + ":" + str(mqmanager) + ":" + str(mqqueuedest)
+                        uuid = hashlib.md5(uuidstr.encode('utf-8')).hexdigest()
 
                     # calculate the length of the message to be published
                     msgpayload_len = len(str(message))
 
                     # Generate Shell and batch files
-                    shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
-                    batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
+                    if ismultiline:
+                        shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
+                        batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
+                    else:
+                        shellbatchname = str(massbatchfolder) + "/" + str(uuid) + "-publish-mq.sh"
+                        batchfile = str(massbatchfolder) + "/" + str(uuid) + "-filebatch.raw"
 
-                    shellcontent = '#!/bin/bash\n' +\
-                    '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
-                    'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-                    str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + '\n' +\
-                    'RETCODE=$?\n' +\
-                    'if [ $RETCODE -ne 0 ]; then\n' +\
-                    'echo "Failure with exit code $RETCODE"\n' +\
-                    'else\n' +\
-                    'echo "Success"\n' +\
-                    'fi\n' +\
-                    'exit $RETCODE'
+                    # Define the shell wrapper
+                    if ismultiline:
+                        shellcontent = '#!/bin/bash\n' +\
+                        '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
+                        'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
+                        str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + '\n' +\
+                        'RETCODE=$?\n' +\
+                        'if [ $RETCODE -ne 0 ]; then\n' +\
+                        'echo "Failure with exit code $RETCODE"\n' +\
+                        'else\n' +\
+                        'echo "Success"\n' +\
+                        'fi\n' +\
+                        'exit $RETCODE'
+                    else:
+                        shellcontent = '#!/bin/bash\n' +\
+                        '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
+                        'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
+                        str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(batchfile) + '\n' +\
+                        'RETCODE=$?\n' +\
+                        'if [ $RETCODE -ne 0 ]; then\n' +\
+                        'echo "Failure with exit code $RETCODE"\n' +\
+                        'else\n' +\
+                        'echo "Success"\n' +\
+                        'fi\n' +\
+                        'exit $RETCODE'
 
                     helper.log_debug("shellcontent:={}".format(shellcontent))
 
-                    with open(str(shellbatchname), 'w') as f:
-                        f.write(shellcontent)
-                    os.chmod(str(shellbatchname), 0o740)
+                    # Create the shell wrapper if required
+                    if not os.path.isfile(shellbatchname):
+                        with open(str(shellbatchname), 'w') as f:
+                            f.write(shellcontent)
+                        os.chmod(str(shellbatchname), 0o740)
 
-                    with open(str(batchfile), 'w') as f:
-                        f.write(str(message))
+                    # if multiline, execute and report, otherwise execute the batch conditionally
 
-                    # Execute the Shell batch now
-                    output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
-                    helper.log_debug("output={}".format(output))
+                    if ismultiline:
 
-                    # purge both baches
-                    os.remove(str(shellbatchname))
-                    os.remove(str(batchfile))
+                        with open(str(batchfile), 'w') as f:
+                            f.write(str(message))
 
-                    # From the output of the subprocess, determine the publication status
-                    # If an exception was raised, it will be added to the error message
-                    if "Success" in str(output):
-                        logmsg = "message publication success, queue_manager=" + str(mqmanager) \
-                        + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                        + ", appname=" + str(appname) + ", region=" + str(region) \
-                        + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
-                        helper.log_info(logmsg)
+                        # Execute the Shell batch now
+                        output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+                        helper.log_debug("output={}".format(output))
 
-                        # Update the KVstore record
-                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                                + '", "status": "success", "manager": "' + str(mqmanager) \
-                                + '", "queue": "' + str(mqqueuedest) \
-                                + '", "appname": "' + str(appname) \
-                                + '", "region": "' + str(region) \
-                                + '", "no_attempts": "' + str(no_attempts) \
-                                + '", "no_max_retry": "' + str(no_max_retry) \
-                                + '", "user": "' + str(user) \
-                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
+                        # purge both baches
+                        os.remove(str(shellbatchname))
+                        os.remove(str(batchfile))
 
-                        # update the record
-                        update_record(helper, record, record_url, headers)
-                        return 0
+                        # From the output of the subprocess, determine the publication status
+                        # If an exception was raised, it will be added to the error message
+                        if "Success" in str(output):
+                            logmsg = "message publication success, queue_manager=" + str(mqmanager) \
+                            + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                            + ", appname=" + str(appname) + ", region=" + str(region) \
+                            + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                            helper.log_info(logmsg)
+
+                            # Update the KVstore record
+                            record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                    + '", "status": "success", "manager": "' + str(mqmanager) \
+                                    + '", "queue": "' + str(mqqueuedest) \
+                                    + '", "appname": "' + str(appname) \
+                                    + '", "region": "' + str(region) \
+                                    + '", "no_attempts": "' + str(no_attempts) \
+                                    + '", "no_max_retry": "' + str(no_max_retry) \
+                                    + '", "user": "' + str(user) \
+                                    + '", "message": "' + str(checkstrforjson(message)) + '"}'
+
+                            # update the record
+                            update_record(helper, record, record_url, headers)
+                            return 0
+
+                        else:
+                            logmsg = "failure in message publication for record key=" + str(key) + "with exception: " + str(output)
+                            helper.log_error(logmsg)
+
+                            # Update the KVstore record
+                            record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                    + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
+                                    + '", "queue": "' + str(mqqueuedest) \
+                                    + '", "appname": "' + str(appname) \
+                                    + '", "region": "' + str(region) \
+                                    + '", "no_attempts": "' + str(no_attempts) \
+                                    + '", "no_max_retry": "' + str(no_max_retry) \
+                                    + '", "user": "' + str(user) \
+                                    + '", "message": "' + str(checkstrforjson(message)) + '"}'
+                            response = requests.post(record_url, headers=headers, data=record,
+                                                    verify=False)
+
+                            # update the record
+                            update_record(helper, record, record_url, headers)
+                            return 0
 
                     else:
-                        logmsg = "failure in message publication for record key=" + str(key) + "with exception: " + str(output)
-                        helper.log_error(logmsg)
 
-                        # Update the KVstore record
-                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                                + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
-                                + '", "queue": "' + str(mqqueuedest) \
-                                + '", "appname": "' + str(appname) \
-                                + '", "region": "' + str(region) \
-                                + '", "no_attempts": "' + str(no_attempts) \
-                                + '", "no_max_retry": "' + str(no_max_retry) \
-                                + '", "user": "' + str(user) \
-                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
-                        response = requests.post(record_url, headers=headers, data=record,
-                                                verify=False)
+                        # get the line count if not multiline
+                        line_count = 0
+                        if os.path.isfile(str(batchfile)):
+                            file = open(str(batchfile), "r")
+                            line_count = 0
+                            for line in file:
+                                if line != "\n":
+                                    line_count += 1
+                            file.close()
 
-                        # update the record
-                        update_record(helper, record, record_url, headers)
-                        return 0
+                        if line_count < 500:
+
+                            # Add to the batch
+                            if os.path.isfile(str(batchfile)):
+                                with open(str(batchfile), 'a') as f:
+                                    f.write(str(message))
+                            else:
+                                with open(str(batchfile), 'w') as f:
+                                    f.write(str(message))
+
+                            logmsg = "message added to batch pending, queue_manager=" + str(mqmanager) \
+                            + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                            + ", appname=" + str(appname) + ", region=" + str(region) \
+                            + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                            helper.log_info(logmsg)
+
+                            # Update the KVstore record
+                            record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                    + '", "status": "pending_batch", "manager": "' + str(mqmanager) \
+                                    + '", "queue": "' + str(mqqueuedest) \
+                                    + '", "appname": "' + str(appname) \
+                                    + '", "region": "' + str(region) \
+                                    + '", "no_attempts": "' + str(no_attempts) \
+                                    + '", "no_max_retry": "' + str(no_max_retry) \
+                                    + '", "user": "' + str(user) \
+                                    + '", "message": "' + str(checkstrforjson(message)) + '"}'
+
+                            # update the record
+                            update_record(helper, record, record_url, headers)
+                            return 0
+
+                        elif line_count >= 500:
+
+                            # Add to the batch
+                            if os.path.isfile(str(batchfile)):
+                                with open(str(batchfile), 'a') as f:
+                                    f.write(str(message))
+                            else:
+                                with open(str(batchfile), 'w') as f:
+                                    f.write(str(message))
+
+                            # Execute the Shell batch now
+                            output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+                            helper.log_debug("output={}".format(output))
+
+                            # purge both baches
+                            os.remove(str(shellbatchname))
+                            os.remove(str(batchfile))
+
+                            # From the output of the subprocess, determine the publication status
+                            # If an exception was raised, it will be added to the error message
+
+                            # batch: all messages in pending_batch for this UUID need to be updated to a successful status
+
+                            if "Success" in str(output):
+                                logmsg = "batch publication success, queue_manager=" + str(mqmanager) \
+                                + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                                + ", appname=" + str(appname) + ", region=" + str(region) \
+                                + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                                helper.log_info(logmsg)
+
+                                # Update the KVstore record
+                                record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
+                                        + '", "status": "success", "manager": "' + str(mqmanager) \
+                                        + '", "queue": "' + str(mqqueuedest) \
+                                        + '", "appname": "' + str(appname) \
+                                        + '", "region": "' + str(region) \
+                                        + '", "no_attempts": "' + str(no_attempts) \
+                                        + '", "no_max_retry": "' + str(no_max_retry) \
+                                        + '", "user": "' + str(user) \
+                                        + '", "message": "' + str(checkstrforjson(message)) + '"}'
+
+                                # update the record
+                                update_record(helper, record, record_url, headers)
+
+                                # Now, update all pending_batch records matching our criterias
+
+                                # Define the url
+                                url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
+
+                                # form a search
+                                search_filter = "where (status=\"pending_batch\" AND manager=\"" + str(mqmanager) +\
+                                    "\" AND queue=\"" + str(mqqueuedest) + "\")"
+                                search_action = "| eval key=_key, status=\"success\", mtime=now() | outputlookup append=t key_field=key mq_publish_backlog"
+                                search = "| inputlookup mq_publish_backlog " + str(search_filter) + str(search_action)
+
+                                output_mode = "csv"
+                                exec_mode = "oneshot"
+                                response = requests.post(url, headers={'Authorization': headers}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                                if response.status_code not in (200, 201, 204):
+                                    helper.log_error(
+                                        'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+                                        'content={}'.format(record_url, response.status_code, response.text))
+                                else:
+                                    helper.log_debug("Kvstore saving is successful")
+
+                                return 0
 
                 else:
 

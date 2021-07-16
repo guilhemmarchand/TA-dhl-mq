@@ -184,6 +184,17 @@
                             "required": true
                         },
                         {
+                            "type": "text",
+                            "label": "Batch size",
+                            "help": "The max number of messages stored and excuted in a single batch for performance purposes, only valid for single line messages.",
+                            "field": "batch_size",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "500",
+                            "required": true
+                        },
+                        {
                             "type": "singleSelect",
                             "label": "KVstore eviction policy",
                             "help": "The global eviction policy driving if and how records will remain in the KVstore collection",
@@ -505,7 +516,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R6ce85e1",
+        "version": "0.0.0R40c85a5",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

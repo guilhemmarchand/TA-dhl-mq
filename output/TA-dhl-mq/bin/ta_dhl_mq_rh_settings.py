@@ -35,6 +35,13 @@ fields_advanced_configuration = [
         validator=None
     ), 
     field.RestField(
+        'batch_size',
+        required=True,
+        encrypted=False,
+        default='500',
+        validator=None
+    ), 
+    field.RestField(
         'kvstore_eviction',
         required=False,
         encrypted=False,
