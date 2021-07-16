@@ -16,6 +16,8 @@ import datetime
 import csv
 import subprocess
 import uuid
+import hashlib
+import re
 
 splunkhome = os.environ['SPLUNK_HOME']
 sys.path.append(os.path.join(splunkhome, 'etc', 'apps', 'TA-dhl-mq', 'lib'))
@@ -26,12 +28,6 @@ import splunklib.client as client
 @Configuration(distributed=False)
 
 class GetMqReplay(GeneratingCommand):
-
-
-    def format_time(self, **kwargs):
-        t = datetime.datetime.now()
-        s = t.strftime('%Y-%m-%d %H:%M:%S.%f')
-        return s[:-3]
 
 
     def generate(self, **kwargs):
@@ -104,125 +100,152 @@ class GetMqReplay(GeneratingCommand):
             uuid = uuid.uuid4()
 
             # Generate Shell and batch files
-            shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
-            batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
-            logfile = str(batchfolder) + "/" + str(uuid) + ".log"
             splunklogfile = SPLUNK_HOME + "/var/log/splunk/mq_publish_message_relay_massbatch.log"
-            debugfile = str(batchfolder) + "/" + str(uuid) + "-debug.txt"
 
             mqchannel = "DEV.APP.SVRCONN"
             mqhost = "mq1"
             mqport = "1414"
-            mqmanager="QM1"
-            mqqueuedest="DEV.QUEUE.1"
-
-            shellcontent = '#!/bin/bash\n' +\
-            '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
-            'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-            str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(batchfile) + '\n' +\
-            'RETCODE=$?\n' +\
-            'if [ $RETCODE -ne 0 ]; then\n' +\
-            'echo "Failure with exit code $RETCODE"\n' +\
-            'else\n' +\
-            'echo "Success"\n' +\
-            'fi\n' +\
-            'exit $RETCODE'
-
-            if not os.path.isfile(shellbatchname):
-                with open(str(shellbatchname), 'w') as f:
-                    f.write(shellcontent)
-                os.chmod(str(shellbatchname), 0o740)
 
             # Use the CSV dict reader
             readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
 
-            # Define an empty search filter
-            search_filter = ""
-
-            # counter
-            counter = 0
+            #
+            # IN RECORDS
+            #
 
             # For row in CSV, generate the _raw
             for row in readCSV:
 
-                # increment
-                counter +=1
+                # dynamic destination
+                deststr = "@" + str(row['manager']) + "@" + str(row['queue']) + "@"
+                destfile = str(batchfolder) + "/" + str(deststr) + ".raw"
+                destkeys = str(batchfolder) + "/" + str(deststr) + ".keys"
+                destlog = str(batchfolder) + "/" + str(deststr) + ".log"
 
                 # append to the batchfile
-                with open(str(batchfile), 'a') as f:
+                with open(str(destfile), 'a') as f:
                     f.write(str(row['message']))
-                
-                # create a search filter
-                if counter>1:
-                    search_filter = str(search_filter) + " OR _key=\"" + str(row['_key']) + "\""
-                else:
-                    search_filter = "_key=\"" + str(row['_key']) + "\""
 
+                # write keys to the log file
+                with open(str(destkeys), 'a') as f:
+                    f.write(str(row['_key']) + "\n")
+                
                 # append to the logfile
-                with open(str(logfile), 'a') as f:
-                    logmsg = "queue_manager=" + str(mqmanager) \
-                        + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
-                        + ", appname=" + str(str(row['appname']) + ", region=" + str(row['region'])) \
+                with open(str(destlog), 'a') as f:
+                    logmsg = "queue_manager=" + str(row['manager']) \
+                        + ", queue=" + str(row['queue']) \
+                        + ", appname=" + str(row['appname']) + ", region=" + str(row['region']) \
                         + ", key=" + str(row['_key']) + "\n"
                     f.write(str(logmsg))
 
-            # Execute the Shell batch now
-            output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+            #
+            # OUT RECORDS
+            #
 
-            # purge both baches
-            os.remove(str(shellbatchname))
-            os.remove(str(batchfile))
+            # iterate through the generated batches, create a shell wrapper, send and update the records
+            for filename in os.listdir(batchfolder):            
+                if filename.endswith(".raw"):
+                    
+                    # extract the manager and queue dest
+                    mqmanager = re.split("[\@]", str(filename))[-3]
+                    mqqueuedest = re.split("[\@]", str(filename))[-2]
 
-            # From the output of the subprocess, determine the publication status
-            # If an exception was raised, it will be added to the error message
-            if "Success" in str(output):
-                self.logger.fatal('success!: %s', self)
-                self.logger.fatal(str(search_filter), self)
+                    # our shell wrapper
+                    shellbatchname = str(batchfolder) + "/" + str(uuid) + "-wrapper.sh"
 
-                search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"success\", mtime=now() | outputlookup mq_publish_backlog append=t key_field=key | stats c"
-                output_mode = "csv"
-                exec_mode = "oneshot"
-                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                    # our shell script content
+                    shellcontent = '#!/bin/bash\n' +\
+                    '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
+                    'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
+                    str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(batchfolder) + "/" + str(filename) + '\n' +\
+                    'RETCODE=$?\n' +\
+                    'if [ $RETCODE -ne 0 ]; then\n' +\
+                    'echo "Failure with exit code $RETCODE"\n' +\
+                    'else\n' +\
+                    'echo "Success"\n' +\
+                    'fi\n' +\
+                    'exit $RETCODE'
 
-                if response.status_code not in (200, 201, 204):
-                    self.logger.fatal('Error in KVstore mass update!: %s', self)
+                    if os.path.isfile(str(shellbatchname)):
+                        os.remove(str(shellbatchname))
+                    else:
+                        with open(str(shellbatchname), 'w') as f:
+                            f.write(shellcontent)
+                        os.chmod(str(shellbatchname), 0o740)
 
-                # log
-                inputlog = open(logfile, "r")
-                outputlog = open(splunklogfile, "a")
-                import datetime
-                t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
-                for line in inputlog:
-                    outputlog.write(str(t[:-3]) + " INFO file=sendmq.py | customaction - signature=\"message publication success, " + str(line) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
-                inputlog.close()
-                outputlog.close()
+                    # Execute the Shell batch now
+                    output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
 
-            else:
-                self.logger.fatal('MQ send has failed!: %s', self)
-                self.logger.fatal(str(search_filter), self)
+                    # purge both files
+                    os.remove(str(shellbatchname))
+                    os.remove(str(batchfolder) + "/" + str(filename))
 
-                search = str(search) + " where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+                    # load the record list from the file
+                    keys_list = open(str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.keys").read().splitlines()
+                    count = 0
+                    search_filter = ""
+                    # create a search filter
+                    for key_record in keys_list:
+                        count +=1
+                        if count>1:
+                            search_filter = str(search_filter) + " OR _key=\"" + str(key_record) + "\""
+                        else:
+                            search_filter = "_key=\"" + str(key_record) + "\""
 
-                output_mode = "csv"
-                exec_mode = "oneshot"
-                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                    # From the output of the subprocess, determine the publication status
+                    # If an exception was raised, it will be added to the error message
+                    if "Success" in str(output):
+                        self.logger.fatal('success!: %s', self)
+                        self.logger.fatal(str(search_filter), self)
 
-                if response.status_code not in (200, 201, 204):
-                    self.logger.fatal('Error in KVstore mass update!: %s', self)
+                        search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"success\", mtime=now() | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+                        output_mode = "csv"
+                        exec_mode = "oneshot"
+                        response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
 
-                # log
-                inputlog = open(logfile, "r")
-                outputlog = open(splunklogfile, "a")
-                import datetime
-                t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
-                for line in inputlog:
-                    outputlog.write(str(t[:-3]) + " ERROR file=sendmq.py | customaction - signature=\"message publication success, " + str(line) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"failure\"\"\n")
-                inputlog.close()
-                outputlog.close()
+                        if response.status_code not in (200, 201, 204):
+                            self.logger.fatal('Error in KVstore mass update!: %s', self)
 
-                # output a report to Splunk
-                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "MQ send successful}"}
-                yield data
+                        # log
+                        inputlog = open(str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.log", "r")
+                        outputlog = open(splunklogfile, "a")
+                        import datetime
+                        t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                        for line in inputlog:
+                            outputlog.write(str(t[:-3]) + " INFO file=sendmq.py | customaction - signature=\"message publication success, " + str(line.strip()) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
+                        inputlog.close()
+                        outputlog.close()
+
+                    else:
+                        self.logger.fatal('MQ send has failed!: %s', self)
+                        self.logger.fatal(str(search_filter), self)
+
+                        search = str(search) + " where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+
+                        output_mode = "csv"
+                        exec_mode = "oneshot"
+                        response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                        if response.status_code not in (200, 201, 204):
+                            self.logger.fatal('Error in KVstore mass update!: %s', self)
+
+                        # log
+                        inputlog = open(str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.log", "r")
+                        outputlog = open(splunklogfile, "a")
+                        import datetime
+                        t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                        for line in inputlog:
+                            outputlog.write(str(t[:-3]) + " ERROR file=sendmq.py | customaction - signature=\"message publication success, " + str(line.strip()) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"failure\"\"\n")
+                        inputlog.close()
+                        outputlog.close()
+
+                        # output a report to Splunk
+                        data = {'_time': time.time(), '_raw': "{\"response\": \"" + "MQ send successful}"}
+                        yield data
+
+                    # remove log and keys
+                    os.remove(str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.keys")
+                    os.remove(str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.log")
 
         else:
 
