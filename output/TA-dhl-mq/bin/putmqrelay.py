@@ -124,6 +124,10 @@ class PutMqRelay(StreamingCommand):
             manager = str(record[self.field_manager])
             queue = str(record[self.field_queue])
             message = str(record[self.field_message])
+            if message.count('\n')>2:
+                multiline = 1
+            else:
+                multiline = 0
 
             # status is pending for an addition
             status = 'pending'
@@ -183,7 +187,8 @@ class PutMqRelay(StreamingCommand):
                             "no_attempts": "0",
                             "no_max_retry": str(no_max_retry),
                             "user": str(user),
-                            "message": str(message)
+                            "message": str(message),
+                            "multiline": str(multiline)
                             }))
 
                         action = "success"
@@ -205,6 +210,6 @@ class PutMqRelay(StreamingCommand):
                 status = "refused"
 
             # yield - return in Splunk a resulting table
-            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user)}
+            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'multiline': str(multiline), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user)}
 
 dispatch(PutMqRelay, sys.argv, sys.stdin, sys.stdout, __name__)

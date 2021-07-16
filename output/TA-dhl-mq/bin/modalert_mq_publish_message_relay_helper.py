@@ -210,6 +210,10 @@ def process_event(helper, *args, **kwargs):
         message = helper.get_param("message")
         helper.log_debug("message={}".format(message))
 
+        # Get multiline
+        multiline = helper.get_param("multiline")
+        helper.log_debug("multiline={}".format(multiline))
+
         # Get no_max_retry
         no_max_retry = int(helper.get_param("no_max_retry"))
         helper.log_debug("no_max_retry={}".format(no_max_retry))
@@ -360,7 +364,7 @@ def process_event(helper, *args, **kwargs):
                     # If an exception was raised, it will be added to the error message
                     if "Success" in str(output):
                         logmsg = "message publication success, queue_manager=" + str(mqmanager) \
-                        + ", channel=" + str(mqchannel) + ", queue=" + str(mqqueuedest) \
+                        + ", queue=" + str(mqqueuedest) \
                         + ", appname=" + str(appname) + ", region=" + str(region) \
                         + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
                         helper.log_info(logmsg)
@@ -374,6 +378,7 @@ def process_event(helper, *args, **kwargs):
                                 + '", "no_attempts": "' + str(no_attempts) \
                                 + '", "no_max_retry": "' + str(no_max_retry) \
                                 + '", "user": "' + str(user) \
+                                + '", "multiline": "' + str(multiline) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                         # update the record
@@ -393,6 +398,7 @@ def process_event(helper, *args, **kwargs):
                                 + '", "no_attempts": "' + str(no_attempts) \
                                 + '", "no_max_retry": "' + str(no_max_retry) \
                                 + '", "user": "' + str(user) \
+                                + '", "multiline": "' + str(multiline) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
                         response = requests.post(record_url, headers=headers, data=record,
                                                 verify=False)
@@ -425,6 +431,7 @@ def process_event(helper, *args, **kwargs):
                                 + '", "no_attempts": "' + str(no_attempts) \
                                 + '", "no_max_retry": "' + str(no_max_retry) \
                                 + '", "user": "' + str(user) \
+                                + '", "multiline": "' + str(multiline) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                         # update the record

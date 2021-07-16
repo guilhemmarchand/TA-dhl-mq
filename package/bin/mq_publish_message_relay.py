@@ -40,6 +40,10 @@ class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
             self.log_error('message is a mandatory parameter, but its value is None.')
             return False
 
+        if not self.get_param("multiline"):
+            self.log_error('multiline is a mandatory parameter, but its value is None.')
+            return False
+
         if not self.get_param("no_max_retry"):
             self.log_error('no_max_retry is a mandatory parameter, but its value is None.')
             return False

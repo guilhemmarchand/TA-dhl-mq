@@ -380,7 +380,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
 match(_raw, "message publication success"), "success",
 match(_raw, "failure in message publication"), "temporary_failure",
 match(_raw, "MQ message publish permanent failure"), "permanent_failure")
-| table _time, host, status, appname, region, queue_manager, channel, queue, signature
+| table _time, host, status, appname, region, queue_manager, queue, signature
 | eval status=case(status="success", status . " ✔️", status="*_failure", status . " ⭕")
 | sort - limit=0 _time</query>
           <earliest>$timerange.earliest$</earliest>

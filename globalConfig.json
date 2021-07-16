@@ -299,80 +299,6 @@
     },
     "alerts": [
         {
-            "name": "mq_publish_message",
-            "label": "Publish a message to an MQ channel",
-            "description": "This alert action allows publishing messages to an MQ channel",
-            "activeResponse": {
-                "task": [
-                    "Create",
-                    "Update"
-                ],
-                "supportsAdhoc": true,
-                "subject": [
-                    "endpoint"
-                ],
-                "category": [
-                    "Information Conveyance",
-                    "Information Portrayal"
-                ],
-                "technology": [
-                    {
-                        "version": [
-                            "1.0.0"
-                        ],
-                        "product": "IBM MQ",
-                        "vendor": "Splunk"
-                    }
-                ],
-                "drilldownUri": "search?q=search%20index%3D\"_internal\"%20sourcetype%3D\"mq:actions:mq_publish_message\"&earliest=0&latest=",
-                "sourcetype": "mq:alert_action:publish_message"
-            },
-            "entity": [
-                {
-                    "type": "singleSelectSplunkSearch",
-                    "label": "Select Queue Manager Account",
-                    "field": "account",
-                    "search": "| rest /servicesNS/nobody/TA-dhl-mq/admin/ta_dhl_mq_account | dedup title",
-                    "valueField": "title",
-                    "labelField": "title",
-                    "help": "Select the Queue Manager account from the dropdown",
-                    "required": true
-                },
-                {
-                    "type": "text",
-                    "label": "App",
-                    "field": "appname",
-                    "defaultValue": "$result.appname$",
-                    "required": true,
-                    "help": "Define the appname value, you can recycle a field resulting from the search, example: $result.appname$"
-                },
-                {
-                    "type": "text",
-                    "label": "Region",
-                    "field": "region",
-                    "defaultValue": "$result.region$",
-                    "required": true,
-                    "help": "Define the region value, you can recycle a field resulting from the search, example: $result.region$"
-                },
-                {
-                    "type": "text",
-                    "label": "Queue name destination",
-                    "field": "mqqueuedest",
-                    "defaultValue": "",
-                    "required": true,
-                    "help": "Please enter the Queue Name where the message will be published, you can recycle a field resulting from the search, example: $result.dest_queue$"
-                },
-                {
-                    "type": "text",
-                    "label": "Message field name",
-                    "field": "mqmsgfield",
-                    "defaultValue": "message",
-                    "required": true,
-                    "help": "The name of field containing the message to be published, if the field is called myfield, enter: myfield"
-                }
-            ]
-        },
-        {
             "name": "mq_publish_message_relay",
             "label": "MQ messages relay publication",
             "description": "This alert allows messages publishing from relay publishers",
@@ -452,6 +378,14 @@
                 },
                 {
                     "type": "text",
+                    "label": "multiline",
+                    "field": "multiline",
+                    "defaultValue": "$result.multiline$",
+                    "required": true,
+                    "help": "bool for multiline, example $result.multiline$"
+                },
+                {
+                    "type": "text",
                     "label": "max number of attempts",
                     "field": "no_max_retry",
                     "defaultValue": "$result.no_max_retry$",
@@ -505,7 +439,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R2f83332",
+        "version": "0.0.0Rb4c52a1",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }
