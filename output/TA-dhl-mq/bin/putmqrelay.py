@@ -8,11 +8,8 @@ import splunk
 import splunk.entity
 import requests
 import time
-import csv
-import uuid
-import requests
-import json
 import hashlib
+import random
 
 splunkhome = os.environ['SPLUNK_HOME']
 sys.path.append(os.path.join(splunkhome, 'etc', 'apps', 'TA-dhl-mq', 'lib'))
@@ -63,8 +60,8 @@ class PutMqRelay(StreamingCommand):
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
-    # This function is required to handle special chars for storing the object in the KVstore
-    def checkstrforjson(i):
+
+    def checkstr(self, i):
 
         if i is not None:
             i = i.replace("\\", "\\\\")
@@ -75,11 +72,10 @@ class PutMqRelay(StreamingCommand):
             i = i.replace("\t", "\\t")
             # Manage breaking delimiters
             i = i.replace("\"", "\\\"")
-            return i       
+            return i
 
 
     def stream(self, records):
-        self.logger.debug('PutMqRelay: %s', self)  # logs command line
 
         # Get the session key
         session_key = self._metadata.searchinfo.session_key
@@ -92,15 +88,15 @@ class PutMqRelay(StreamingCommand):
                                             namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
         splunkd_port = entity['mgmtHostPort']
 
-        # Create the SDK service
-        collection_name = "kv_mq_publish_backlog"
-        service = client.connect(
-            owner="nobody",
-            app="TA-dhl-mq",
-            port=splunkd_port,
-            token=session_key
-        )
-        collection = service.kvstore[collection_name]
+        # Set url
+        kv_url = 'https://localhost:' + str(splunkd_port) \
+                        + '/servicesNS/nobody/' \
+                        'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
+
+        # Set headers
+        headers = {
+            'Authorization': 'Splunk %s' % session_key,
+            'Content-Type': 'application/json'}
 
         # Get conf
         conf_file = "ta_dhl_mq_settings"
@@ -136,7 +132,7 @@ class PutMqRelay(StreamingCommand):
             if self.dedup == 'True':
                 keyrecord = hashlib.md5(message.encode('utf-8')).hexdigest()
             else:
-                keyrecord = uuid.uuid4()
+                keyrecord = random.getrandbits(128)
 
             # Get some requires fields length for reporting and verification purposes
             appname_len = len(appname)
@@ -149,60 +145,43 @@ class PutMqRelay(StreamingCommand):
             ctime = time.time()
             mtime = str(ctime)
 
-            #message_json = self.checkstrforjson(message)
             action = None
             result = None
+
+            status = "pending"
+            no_attempts = "0"
 
             # Insert in the KV
             if message and (message_len>0 and appname_len>0 and region_len>0 and manager_len>0 and queue_len>0):
 
-                # if dedup, verifies if a key record exists already, otherwise isdup is False
-                isdup = False
-                
-                if self.dedup == 'True':
+                # Update the KVstore record with the increment, and the new mtime
+                record = '{' \
+                        '"_key": "' + str(keyrecord) +\
+                        '", "ctime": "' + str(ctime) +\
+                        '", "mtime": "' + str(mtime) +\
+                        '", "status": "' + str(status) +\
+                        '", "manager": "' + str(manager) +\
+                        '", "queue": "' + str(queue) +\
+                        '", "appname": "' + str(appname) +\
+                        '", "region": "' + str(region) +\
+                        '", "no_attempts": "' + str(no_attempts) +\
+                        '", "no_max_retry": "' + str(no_max_retry) +\
+                        '", "user": "' + str(user) +\
+                        '", "message": "' + str(self.checkstr(message)) +\
+                        '", "multiline": "' + str(multiline) +\
+                        '"}'
 
-                    record = None
-                    try:
-                        # Get the record
-                        record = json.dumps(collection.data.query_by_id(keyrecord), indent=1)
-                        isdup = True
-                    except Exception as e:
-                        isdup = False
-
-                # if not a dup, or dedup is not enabled
-                if not isdup:
-
-                    try:
-
-                        # Insert the record
-                        collection.data.insert(json.dumps({
-                            "_key": str(keyrecord),
-                            "ctime": str(ctime),
-                            "mtime": str(mtime),
-                            "status": "pending",
-                            "manager": str(manager),
-                            "queue": str(queue),
-                            "appname": str(appname),
-                            "region": str(region),
-                            "no_attempts": "0",
-                            "no_max_retry": str(no_max_retry),
-                            "user": str(user),
-                            "message": str(message),
-                            "multiline": str(multiline)
-                            }))
-
-                        action = "success"
-                        result = "record key: " + str(keyrecord) + " successfully added to the MQ publishing KVstore"
-
-                    except Exception as e:
-
-                        action = "failure"
-                        result = "KVstore saving has failed!. Exception: " + str(e)
-
-                else:
+                response = requests.post(kv_url, headers=headers, data=record,
+                                        verify=False)
+                if response.status_code not in (200, 201, 204):
+                    self.logger.fatal('KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+                        'content={}'.format(kv_url, record, response.status_code, response.text))
                     action = "failure"
-                    result = "dedup detected, a record with the same MD5 hash exists already in the KVstore"
-                    status = "refused"
+                    result = "KVstore saving has failed!. Exception: " + str(response.text)
+                    status = None
+                else:
+                    action = "success"
+                    result = "record key: " + str(keyrecord) + " successfully added to the MQ publishing KVstore"
 
             else:
                 action = "failure"
