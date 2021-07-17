@@ -431,6 +431,22 @@
                     "defaultValue": "$result.user$",
                     "required": true,
                     "help": "the user value, example $result.user$"
+                },
+                {
+                    "type": "text",
+                    "label": "batch_uuid",
+                    "field": "batch_uuid",
+                    "defaultValue": "$result.batch_uuid$",
+                    "required": true,
+                    "help": "the batch_uuid value, example $result.batch_uuid$"
+                },
+                {
+                    "type": "text",
+                    "label": "validation_required",
+                    "field": "validation_required",
+                    "defaultValue": "$result.validation_required$",
+                    "required": true,
+                    "help": "the validation_required value, example $result.validation_required$"
                 }
             ]
         }
@@ -439,7 +455,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Rbf95030",
+        "version": "0.0.0R0dd886f",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }

@@ -1,5 +1,6 @@
 <nav color="#708794">
 	<view name="overview_mq" default="true" />
+	<view name="manage_pending_batches" />	
     <view name="configuration" />
     <collection label="Search">
 		<view name="search" />

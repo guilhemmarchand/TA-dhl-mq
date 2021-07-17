@@ -3,6 +3,8 @@
   <search id="baseSearch">
     <query>| inputlookup mq_publish_backlog | eval key=_key | table key, appname, region, manager, channel, queue, message, no_max_retry, no_attempts, ctime, mtime, user, status
 | stats count by status</query>
+      <refresh>30s</refresh>
+      <refreshType>delay</refreshType>
   </search>
   <search id="baseSearchLogs">
     <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* "message publication success" OR "failure in message publication" OR "MQ message publish permanent failure"
@@ -13,6 +15,8 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
 | stats count by status</query>
     <earliest>$timerange.earliest$</earliest>
     <latest>$timerange.latest$</latest>
+    <refresh>30s</refresh>
+    <refreshType>delay</refreshType>
   </search>
   <search id="baseSearchDropdown" depends="$showTable$">
     <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$
@@ -70,7 +74,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         <option name="trellis.size">medium</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">SUCCESSFUL PUBLICATION STORED IN THE KVSTORE</option>
+        <option name="underLabel">SUCCESSFUL PUBLICATION IN KVSTORE</option>
         <option name="unitPosition">after</option>
         <option name="useColors">1</option>
         <option name="useThousandSeparators">1</option>
@@ -95,6 +99,32 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
         <option name="underLabel">PENDING MESSAGES</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search>
+          <query>| inputlookup mq_publish_backlog where validation_required=1 | stats dc(batch_uuid) as dcount</query>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="underLabel">BATCHES WAITING FOR APPROVAL</option>
         <option name="unitPosition">after</option>
         <option name="useColors">1</option>
         <option name="useThousandSeparators">1</option>
@@ -312,6 +342,8 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
 | timechart count as success $minspan$ bins=1000 limit=45 by host</query>
           <earliest>$timerange.earliest$</earliest>
           <latest>$timerange.latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="charting.chart">column</option>
         <option name="charting.chart.stackMode">stacked</option>
@@ -385,6 +417,8 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
 | sort - limit=0 _time</query>
           <earliest>$timerange.earliest$</earliest>
           <latest>$timerange.latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
       </table>
     </panel>

@@ -1,0 +1,72 @@
+<dashboard theme="dark">
+  <label>Manage pending batches</label>
+  <row>
+    <panel>
+      <single>
+        <search>
+          <query>| inputlookup mq_publish_backlog where validation_required=1 | stats dc(batch_uuid) as dcount</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="underLabel">BATCHES WAITING FOR APPROVAL</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Click on a pending batch to validate the submission and free the publication of the associated messages</title>
+      <table rejects="$show_null_results$">
+        <search>
+          <query>| inputlookup mq_publish_backlog where validation_required=1 
+| stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue by batch_uuid</query>
+          <done>
+              <condition match="$job.resultCount$ == 0">
+                  <set token="show_null_results">true</set>
+              </condition>
+              <condition>
+                  <unset token="show_null_results"></unset>
+              </condition>
+          </done>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">row</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="showresult">True</set>
+          <set token="batch_uuid">$row.batch_uuid$</set>
+        </drilldown>
+      </table>
+      <html depends="$show_null_results$">
+        <h2 style="text-align: center; font-style: italic;">There are no pending batches currently</h2>
+      </html>
+    </panel>
+  </row>
+  <row depends="$showresult$">
+    <panel>
+      <title>Activation result:</title>
+      <event>
+        <search depends="$showresult$ $batch_uuid$">
+          <query>| managebatch batch_uuid="$batch_uuid$"</query>
+        </search>
+      </event>
+    </panel>
+  </row>
+</dashboard>

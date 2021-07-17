@@ -55,11 +55,20 @@ class PutMqRelay(StreamingCommand):
         doc='''
         **Syntax:** **dedup=****
         **Description:** uses an hash based logic to prevent inserting records already known to the KVstore and avoid generating duplicates.
+        Default is True.
         If true, the hash used for the records is based on the raw message, the same hash cannot be added more than once.
-        If false use a random record for the key generation.
+        If false, use a random record for the key generation.
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
+    validation_required = Option(
+        doc='''
+        **Syntax:** **validation_required=****
+        **Description:** set a boolean flag to allow the batch to be processed, default is False
+        If true, the field validation_required is set to the boolean value 1, the batch will not be processed until it is validate and the value set to 0 in the KVstore.
+        If false, the validation_required field is set to the False boolean value 0 and will be processed as soon as possible.
+        .''',
+        require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
     def checkstr(self, i):
 
@@ -111,6 +120,17 @@ class PutMqRelay(StreamingCommand):
         # Set the dedup mode
         if not self.dedup:
             self.dedup = 'True'
+
+        # Set the validation required
+        if not self.validation_required:
+            validation_required = 0
+        elif self.validation_required == 'True':
+            validation_required = 1
+        elif self.validation_required == 'False':
+            validation_required = 0
+
+        # generate a unique ID for this batch
+        batch_uuid = random.getrandbits(128)
 
         # Loop in the results
         for record in records:
@@ -169,9 +189,13 @@ class PutMqRelay(StreamingCommand):
                         '", "user": "' + str(user) +\
                         '", "message": "' + str(self.checkstr(message)) +\
                         '", "multiline": "' + str(multiline) +\
+                        '", "batch_uuid": "' + str(batch_uuid) +\
+                        '", "validation_required": "' + str(validation_required) +\
                         '"}'
 
-                response = requests.post(kv_url, headers=headers, data=record,
+                session = requests.Session()
+                session.verify = True
+                response = session.post(kv_url, headers=headers, data=record,
                                         verify=False)
                 if response.status_code not in (200, 201, 204):
                     self.logger.fatal('KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
@@ -189,6 +213,6 @@ class PutMqRelay(StreamingCommand):
                 status = "refused"
 
             # yield - return in Splunk a resulting table
-            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'multiline': str(multiline), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user)}
+            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'multiline': str(multiline), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user), 'batch_uuid': str(batch_uuid), 'validation_required': str(validation_required)}
 
 dispatch(PutMqRelay, sys.argv, sys.stdin, sys.stdout, __name__)

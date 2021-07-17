@@ -67,6 +67,14 @@ class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
         if not self.get_param("user"):
             self.log_error('user is a mandatory parameter, but its value is None.')
             return False
+
+        if not self.get_param("batch_uuid"):
+            self.log_error('batch_uuid is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("validation_required"):
+            self.log_error('validation_required is a mandatory parameter, but its value is None.')
+            return False
         return True
 
     def process_event(self, *args, **kwargs):

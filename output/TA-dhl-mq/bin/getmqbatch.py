@@ -83,7 +83,7 @@ class GetMqReplay(GeneratingCommand):
                 yield data
                 sys.exit(0)
             elif kvstore_search_filters:
-                search = str(search) + " where (status=\"pending\" AND multiline=0 AND no_attempts=0) | search " + str(kvstore_search_filters)
+                search = str(search) + " where (status=\"pending\" validation_required=0 AND multiline=0 AND no_attempts=0) | search " + str(kvstore_search_filters)
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
@@ -134,6 +134,7 @@ class GetMqReplay(GeneratingCommand):
                 with open(str(destlog), 'a') as f:
                     logmsg = "queue_manager=" + str(row['manager']) \
                         + ", queue=" + str(row['queue']) \
+                        + ", batch_uuid=" + str(row['batch_uuid']) \
                         + ", appname=" + str(row['appname']) + ", region=" + str(row['region']) \
                         + ", key=" + str(row['_key']) + "\n"
                     f.write(str(logmsg))
@@ -242,7 +243,7 @@ class GetMqReplay(GeneratingCommand):
                             import datetime
                             t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
                             for line in inputlog:
-                                outputlog.write(str(t[:-3]) + " INFO file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
+                                outputlog.write(str(t[:-3]) + " INFO file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
                             inputlog.close()
                             outputlog.close()
 

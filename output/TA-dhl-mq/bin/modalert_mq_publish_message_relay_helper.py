@@ -15,6 +15,7 @@ def checkstrforjson(i):
         i = i.replace("\"", "\\\"")
         return i       
 
+
 def delete_record(helper, key, record_url, headers, *args, **kwargs):
 
     # imports
@@ -238,6 +239,14 @@ def process_event(helper, *args, **kwargs):
         user = helper.get_param("user")
         helper.log_debug("user={}".format(user))
 
+        # Get batch_uuid
+        batch_uuid = helper.get_param("batch_uuid")
+        helper.log_debug("batch_uuid={}".format(batch_uuid))
+
+        # Get validation_required
+        validation_required = helper.get_param("validation_required")
+        helper.log_debug("validation_required={}".format(validation_required))
+
         # Set record_url
         record_url = str(kv_url) + str(key)
 
@@ -366,6 +375,7 @@ def process_event(helper, *args, **kwargs):
                         logmsg = "message publication success, queue_manager=" + str(mqmanager) \
                         + ", queue=" + str(mqqueuedest) \
                         + ", appname=" + str(appname) + ", region=" + str(region) \
+                        + ", batch_uuid=" + str(batch_uuid) \
                         + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
                         helper.log_info(logmsg)
 
@@ -379,6 +389,8 @@ def process_event(helper, *args, **kwargs):
                                 + '", "no_max_retry": "' + str(no_max_retry) \
                                 + '", "user": "' + str(user) \
                                 + '", "multiline": "' + str(multiline) \
+                                + '", "batch_uuid": "' + str(batch_uuid) \
+                                + '", "validation_required": "' + str(validation_required) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                         # update the record
@@ -386,7 +398,12 @@ def process_event(helper, *args, **kwargs):
                         return 0
 
                     else:
-                        logmsg = "failure in message publication for record key=" + str(key) + "with exception: " + str(output)
+                        logmsg = "failure in message publication, queue_manager=" + str(mqmanager) \
+                        + ", queue=" + str(mqqueuedest) \
+                        + ", appname=" + str(appname) + ", region=" + str(region) \
+                        + ", batch_uuid=" + str(batch_uuid) \
+                        + ", message_length=" + str(msgpayload_len) + ", key=" + str(key) \
+                        + ", exception=" + str(output)
                         helper.log_error(logmsg)
 
                         # Update the KVstore record
@@ -399,6 +416,8 @@ def process_event(helper, *args, **kwargs):
                                 + '", "no_max_retry": "' + str(no_max_retry) \
                                 + '", "user": "' + str(user) \
                                 + '", "multiline": "' + str(multiline) \
+                                + '", "batch_uuid": "' + str(batch_uuid) \
+                                + '", "validation_required": "' + str(validation_required) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
                         response = requests.post(record_url, headers=headers, data=record,
                                                 verify=False)
@@ -432,6 +451,8 @@ def process_event(helper, *args, **kwargs):
                                 + '", "no_max_retry": "' + str(no_max_retry) \
                                 + '", "user": "' + str(user) \
                                 + '", "multiline": "' + str(multiline) \
+                                + '", "batch_uuid": "' + str(batch_uuid) \
+                                + '", "validation_required": "' + str(validation_required) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                         # update the record

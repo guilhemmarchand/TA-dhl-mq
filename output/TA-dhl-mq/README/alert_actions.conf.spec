@@ -14,4 +14,6 @@ param.ctime = <string> ctime. It's a required parameter. It's default value is $
 param.mtime = <string> mtime. It's a required parameter. It's default value is $result.mtime$.
 param.status = <string> status. It's a required parameter. It's default value is $result.status$.
 param.user = <string> user. It's a required parameter. It's default value is $result.user$.
+param.batch_uuid = <string> batch_uuid. It's a required parameter. It's default value is $result.batch_uuid$.
+param.validation_required = <string> validation_required. It's a required parameter. It's default value is $result.validation_required$.
 
