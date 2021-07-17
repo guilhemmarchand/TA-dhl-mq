@@ -54,8 +54,8 @@ class PutMqRelay(StreamingCommand):
     dedup = Option(
         doc='''
         **Syntax:** **dedup=****
-        **Description:** verify that the message MD5 sum exists already in the KVstore or not.
-        If true, refuse to add this record to the KVstore.
+        **Description:** uses an hash based logic to prevent inserting records already known to the KVstore and avoid generating duplicates.
+        If true, the hash used for the records is based on the raw message, the same hash cannot be added more than once.
         If false use a random record for the key generation.
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
@@ -110,7 +110,7 @@ class PutMqRelay(StreamingCommand):
 
         # Set the dedup mode
         if not self.dedup:
-            self.dedup = 'False'
+            self.dedup = 'True'
 
         # Loop in the results
         for record in records:
