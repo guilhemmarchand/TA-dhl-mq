@@ -1,12 +1,12 @@
 <form theme="dark">
   <label>DHL Add-on for IBM MQ - Overview</label>
-  <search id="baseSearch">
+  <search id="baseSearch" depends="$showMain1$">
     <query>| inputlookup mq_publish_backlog | eval key=_key | table key, appname, region, manager, channel, queue, message, no_max_retry, no_attempts, ctime, mtime, user, status
 | stats count by status</query>
-      <refresh>30s</refresh>
-      <refreshType>delay</refreshType>
+    <refresh>30s</refresh>
+    <refreshType>delay</refreshType>
   </search>
-  <search id="baseSearchLogs">
+  <search id="baseSearchLogs" depends="$showMain1$">
     <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* "message publication success" OR "failure in message publication" OR "MQ message publish permanent failure"
 | eval status=case(
 match(_raw, "message publication success"), "success",
@@ -18,7 +18,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
     <refresh>30s</refresh>
     <refreshType>delay</refreshType>
   </search>
-  <search id="baseSearchDropdown" depends="$showTable$">
+  <search id="baseSearchDropdown" depends="$showTable$ $showMain1$">
     <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$
 | stats count by host, queue_manager, appname, region
 </query>
@@ -26,12 +26,64 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
     <latest>$timerange.latest$</latest>
   </search>
   <fieldset submitButton="false"></fieldset>
+  
   <row>
     <panel>
-      <title>MQ RELAY PUBLICATION KVSTORE OVERVIEW</title>
+      <html depends="$hiddenCss$">
+        <style>
+/* Fix link input object align */
+.input-linklist {
+  display: inline !important;
+  margin-top: 30px !important;
+}
+
+/* Fix link input object align for Splunk 6.5 */
+.input-link {
+  display: inline !important;
+  margin-top: 30px !important;
+}
+
+/* reduce size of the token input panel */
+.input-link label{
+  display: none !important;
+  margin-top: 30px !important;
+}
+
+.splunk-choice-input-message{
+  display: none !important;
+  margin-top: 30px !important;
+}
+        </style>
+      </html>
+      <input type="link" token="mainlink" searchWhenChanged="true">
+        <label></label>
+        <choice value="process_overtime">MQ RELAY PUBLICATION OVERVIEW</choice>
+        <choice value="putmqrelay">PUTMQRELAY COMMAND</choice>
+        <choice value="managebatch">MANAGEBATCH COMMAND</choice>        
+        <default>process_overtime</default>
+        <initialValue>process_overtime</initialValue>
+        <change>
+          <condition value="process_overtime">
+            <set token="showMain1">True</set>
+            <unset token="showMain2"></unset>
+            <unset token="showMain3"></unset>
+          </condition>
+          <condition value="putmqrelay">
+            <set token="showMain2">True</set>
+            <unset token="showMain1"></unset>
+            <unset token="showMain3"></unset>            
+          </condition>
+          <condition value="managebatch">
+            <set token="showMain3">True</set>
+            <unset token="showMain1"></unset>
+            <unset token="showMain2"></unset>            
+          </condition>
+        </change>
+      </input>
     </panel>
-  </row>
-  <row>
+  </row>  
+  
+  <row depends="$showMain1$">
     <panel>
       <single>
         <search base="baseSearch">
@@ -106,7 +158,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
     </panel>
     <panel>
       <single>
-        <search>
+        <search depends="$showMain1$">
           <query>| inputlookup mq_publish_backlog where validation_required=1 | stats dc(batch_uuid) as dcount</query>
           <refresh>30s</refresh>
           <refreshType>delay</refreshType>
@@ -128,6 +180,9 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         <option name="unitPosition">after</option>
         <option name="useColors">1</option>
         <option name="useThousandSeparators">1</option>
+        <drilldown>
+          <link target="_blank">/app/TA-dhl-mq/manage_pending_batches</link>
+        </drilldown>        
       </single>
     </panel>
     <panel>
@@ -179,12 +234,12 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
       </single>
     </panel>
   </row>
-  <row>
+  <row depends="$showMain1$">
     <panel>
       <title>MQ PROCESSING OVER TIME</title>
     </panel>
   </row>
-  <row>
+  <row depends="$showMain1$">
     <panel>
       <single>
         <search base="baseSearchLogs">
@@ -282,7 +337,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
       </single>
     </panel>
   </row>
-  <row>
+  <row depends="$showMain1$">
     <panel>
       <input type="time" token="timerange" searchWhenChanged="true">
         <label>Period:</label>
@@ -323,7 +378,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
             <set token="showChart">True</set>
             <unset token="showTable"></unset>
           </condition>
-          <condition>
+          <condition value="table">
             <set token="showTable">True</set>
             <unset token="showChart"></unset>
           </condition>
@@ -331,10 +386,10 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
       </input>
     </panel>
   </row>
-  <row>
+  <row depends="$showMain1$">
     <panel></panel>
   </row>
-  <row>
+  <row depends="$showMain1$">
     <panel depends="$showChart$">
       <chart>
         <search depends="$showChart$">
@@ -406,7 +461,7 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
         <fieldForValue>region</fieldForValue>
       </input>
       <table>
-        <search depends="$showTable$">
+        <search depends="$showTable$ $showMain1$">
           <query>(index="_internal" OR index="cim_modactions") signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$
 | eval status=case(
 match(_raw, "message publication success"), "success",
@@ -423,4 +478,43 @@ match(_raw, "MQ message publish permanent failure"), "permanent_failure")
       </table>
     </panel>
   </row>
+  
+  <row depends="$showMain2$">
+    <panel>
+      <input type="time" token="timerange" searchWhenChanged="true">
+        <label>Period:</label>
+        <default>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <event>
+        <search depends="$showMain2$">
+          <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:putmqrelay"</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+        </search>
+      </event>      
+    </panel>
+  </row>
+
+  <row depends="$showMain3$">
+    <panel>
+      <input type="time" token="timerange" searchWhenChanged="true">
+        <label>Period:</label>
+        <default>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <event>
+        <search depends="$showMain3$">
+          <query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:managebatch"</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+        </search>
+      </event>      
+    </panel>
+  </row>
+  
 </form>

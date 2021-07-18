@@ -12,6 +12,7 @@ import splunk
 import splunk.entity
 import requests
 import time
+import datetime
 import csv
 
 splunkhome = os.environ['SPLUNK_HOME']
@@ -37,10 +38,17 @@ class ManagePendingBatch(GeneratingCommand):
             # Get the session key
             session_key = self._metadata.searchinfo.session_key
 
+            # Get the current user        
+            user = self._metadata.searchinfo.username
+
             # Get splunkd port
             entity = splunk.entity.getEntity('/server', 'settings',
                                                 namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
             splunkd_port = entity['mgmtHostPort']
+
+            # log all actions
+            SPLUNK_HOME = os.environ["SPLUNK_HOME"]
+            splunklogfile = SPLUNK_HOME + "/var/log/splunk/mq_publish_message_managebatch.log"
 
             # Get conf
             conf_file = "ta_dhl_mq_settings"
@@ -79,6 +87,20 @@ class ManagePendingBatch(GeneratingCommand):
 
             # For row in CSV, generate the _raw
             for row in readCSV:
+
+                outputlog = open(splunklogfile, "a")
+                t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                raw_kv_message = 'action=\"' + str(row['action']) \
+                    + '\", count=\"' + str(row['count']) \
+                    + '\", manager=\"' + str(row['manager']) \
+                    + '\", queue=\"' + str(row['queue']) \
+                    + '\", batch_uuid=\"' + str(row['batch_uuid']) \
+                    + '\", region=\"' + str(row['region']) \
+                    + '\", validation_required=\"' + str(row['validation_required']) \
+                    + '\", user=\"' + str(user) + '\"'
+                outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
+                outputlog.close()
+
                 yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
 
         else:

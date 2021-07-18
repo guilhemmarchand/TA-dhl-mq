@@ -8,6 +8,7 @@ import splunk
 import splunk.entity
 import requests
 import time
+import datetime
 import hashlib
 import random
 import json
@@ -99,6 +100,10 @@ class PutMqRelay(StreamingCommand):
         entity = splunk.entity.getEntity('/server', 'settings',
                                             namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
         splunkd_port = entity['mgmtHostPort']
+
+        # log all actions
+        SPLUNK_HOME = os.environ["SPLUNK_HOME"]
+        splunklogfile = SPLUNK_HOME + "/var/log/splunk/mq_publish_message_putmqrelay.log"
 
         # Get conf
         conf_file = "ta_dhl_mq_settings"
@@ -284,8 +289,20 @@ class PutMqRelay(StreamingCommand):
             "results_count": str(results_count),
             "processed_count": str(processed_count),
             "kvstore_count": str(kvstore_count),
-            "batch_uuid": str(batch_uuid)
+            "batch_uuid": str(batch_uuid),
+            "user": str(user)
         }
+
+        outputlog = open(splunklogfile, "a")
+        t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+        raw_kv_message = 'action=\"' + str(action) + '\", result=\"' + str(result) \
+            + '\", results_count=\"' + str(results_count) \
+            + '\", processed_count=\"' + str(processed_count) \
+            + '\", kvstore_count=\"' + str(kvstore_count) \
+            + '\", batch_uuid=\"' + str(batch_uuid) \
+            + '\", user=\"' + str(user) + '\"'
+        outputlog.write(str(t[:-3]) + " INFO file=putmqrelay.py | customaction - signature=\"putmqrelay custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
+        outputlog.close()
 
         yield {'_time': time.time(), '_raw': json.dumps(raw, indent=4), 'action': str(action), 'result': str(result), 'result_count': str(results_count), 'process_count': str(processed_count), 'kvstore_count': str(kvstore_count), 'batch_uuid': str(batch_uuid)}
 

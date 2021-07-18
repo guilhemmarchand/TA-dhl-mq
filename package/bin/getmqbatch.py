@@ -117,7 +117,7 @@ class GetMqReplay(GeneratingCommand):
             for row in readCSV:
 
                 # dynamic destination
-                deststr = "@" + str(row['manager']) + "@" + str(row['queue']) + "@"
+                deststr = "@" + str(uuid) + "@" + str(row['manager']) + "@" + str(row['queue']) + "@"
                 destfile = str(batchfolder) + "/" + str(deststr) + ".raw"
                 destkeys = str(batchfolder) + "/" + str(deststr) + ".keys"
                 destlog = str(batchfolder) + "/" + str(deststr) + ".log"
@@ -152,9 +152,9 @@ class GetMqReplay(GeneratingCommand):
                     mqqueuedest = re.split("[\@]", str(filename))[-2]
 
                     # define associated files
-                    instance_keyfile = str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.keys"
-                    instance_logfile = str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.log"
-                    instance_rawfile = str(batchfolder) + "/" + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.raw"
+                    instance_keyfile = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.keys"
+                    instance_logfile = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.log"
+                    instance_rawfile = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.raw"
 
                     # get the configuration for this account
                     # Get conf, fail if does not exist
