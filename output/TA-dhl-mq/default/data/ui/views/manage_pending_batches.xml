@@ -62,11 +62,13 @@
   <row depends="$showresult$">
     <panel>
       <title>Activation result:</title>
-      <event>
+      <table>
         <search depends="$showresult$ $batch_uuid$">
-          <query>| managebatch batch_uuid="$batch_uuid$"</query>
+          <query>| managebatch batch_uuid="$batch_uuid$"
+| table action, batch_uuid, region, appname, validation_required, count, manager, queue
+| eval action=case(action="success", action . " ✅", action="*_failure", action . " ⭕")</query>
         </search>
-      </event>
+      </table>
     </panel>
   </row>
 </dashboard>
