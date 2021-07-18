@@ -10,6 +10,8 @@ import requests
 import time
 import hashlib
 import random
+import json
+import csv
 
 splunkhome = os.environ['SPLUNK_HOME']
 sys.path.append(os.path.join(splunkhome, 'etc', 'apps', 'TA-dhl-mq', 'lib'))
@@ -70,6 +72,7 @@ class PutMqRelay(StreamingCommand):
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
+
     def checkstr(self, i):
 
         if i is not None:
@@ -97,15 +100,28 @@ class PutMqRelay(StreamingCommand):
                                             namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
         splunkd_port = entity['mgmtHostPort']
 
-        # Set url
-        kv_url = 'https://localhost:' + str(splunkd_port) \
-                        + '/servicesNS/nobody/' \
-                        'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
-
-        # Set headers
-        headers = {
-            'Authorization': 'Splunk %s' % session_key,
-            'Content-Type': 'application/json'}
+        # Get conf
+        conf_file = "ta_dhl_mq_settings"
+        confs = self.service.confs[str(conf_file)]
+        kvstore_instance = None
+        bearer_token = None
+        for stanza in confs:
+            if stanza.name == "advanced_configuration":
+                for key, value in stanza.content.items():
+                    if key == "kvstore_instance":
+                        kvstore_instance = value
+                    if key == "bearer_token":
+                        bearer_token = value
+        
+        # Define the headers, use bearer token if instance is not local
+        if str(kvstore_instance) != "localhost:8089":
+            headers = {
+                'Authorization': 'bearer %s' % bearer_token,
+                'Content-Type': 'application/json'}
+        else:
+            headers = {
+                'Authorization': 'Splunk %s' % session_key,
+                'Content-Type': 'application/json'}
 
         # Get conf
         conf_file = "ta_dhl_mq_settings"
@@ -131,6 +147,9 @@ class PutMqRelay(StreamingCommand):
 
         # generate a unique ID for this batch
         batch_uuid = random.getrandbits(128)
+
+        # empty array to store our processed records
+        records_list = []
 
         # Loop in the results
         for record in records:
@@ -165,9 +184,7 @@ class PutMqRelay(StreamingCommand):
             ctime = time.time()
             mtime = str(ctime)
 
-            action = None
-            result = None
-
+            # default values for status and number of attempts
             status = "pending"
             no_attempts = "0"
 
@@ -175,44 +192,101 @@ class PutMqRelay(StreamingCommand):
             if message and (message_len>0 and appname_len>0 and region_len>0 and manager_len>0 and queue_len>0):
 
                 # Update the KVstore record with the increment, and the new mtime
-                record = '{' \
-                        '"_key": "' + str(keyrecord) +\
-                        '", "ctime": "' + str(ctime) +\
-                        '", "mtime": "' + str(mtime) +\
-                        '", "status": "' + str(status) +\
-                        '", "manager": "' + str(manager) +\
-                        '", "queue": "' + str(queue) +\
-                        '", "appname": "' + str(appname) +\
-                        '", "region": "' + str(region) +\
-                        '", "no_attempts": "' + str(no_attempts) +\
-                        '", "no_max_retry": "' + str(no_max_retry) +\
-                        '", "user": "' + str(user) +\
-                        '", "message": "' + str(self.checkstr(message)) +\
-                        '", "multiline": "' + str(multiline) +\
-                        '", "batch_uuid": "' + str(batch_uuid) +\
-                        '", "validation_required": "' + str(validation_required) +\
-                        '"}'
+                record = {
+                            "_key": str(keyrecord),
+                            "ctime": str(ctime),
+                            "mtime": str(mtime),
+                            "status": str(status),
+                            "manager": str(manager),
+                            "queue": str(queue),
+                            "appname": str(appname),
+                            "region": str(region),
+                            "no_attempts": str(no_attempts),
+                            "no_max_retry": str(no_max_retry),
+                            "user": str(user),
+                            "message": str(self.checkstr(message)),
+                            "multiline": str(multiline),
+                            "batch_uuid": str(batch_uuid),
+                            "validation_required": str(validation_required)
+                            }
 
-                session = requests.Session()
-                session.verify = True
-                response = session.post(kv_url, headers=headers, data=record,
-                                        verify=False)
-                if response.status_code not in (200, 201, 204):
-                    self.logger.fatal('KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
-                        'content={}'.format(kv_url, record, response.status_code, response.text))
-                    action = "failure"
-                    result = "KVstore saving has failed!. Exception: " + str(response.text)
-                    status = None
-                else:
-                    action = "success"
-                    result = "record key: " + str(keyrecord) + " successfully added to the MQ publishing KVstore"
+                records_list.append(record)
+
 
             else:
                 action = "failure"
                 result = "Is either message/appname/region/manager/queue empty?"
                 status = "refused"
 
-            # yield - return in Splunk a resulting table
-            yield {'_time': time.time(), 'action': str(action), 'result': str(result), 'key': str(keyrecord), 'message_length': str(message_len), 'message': str(message), 'multiline': str(multiline), 'appname': str(appname), 'region': str(region), 'ctime': str(time.time()), 'mtime': str(time.time()), 'manager': str(manager), 'status': str(status), 'queue': str(queue), 'no_max_retry': str(no_max_retry), 'no_attempts': '0', 'user': str(user), 'batch_uuid': str(batch_uuid), 'validation_required': str(validation_required)}
+        # batch insert into the KVstore
+
+        # total number of messages to be processed
+        results_count = len(records_list)
+
+        # Set uri
+        kv_url = 'https://localhost:' + str(splunkd_port) \
+                        + '/servicesNS/nobody/' \
+                        'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/batch_save'
+
+        # to report processed messages
+        processed_count = 0
+
+        # process by chunk
+        chunks = [records_list[i:i + 500] for i in range(0, len(records_list), 500)]
+        for chunk in chunks:
+
+            chunk_len = len(chunk)
+            session = requests.Session()
+            session.verify = True
+            response = session.post(kv_url, headers=headers, data=json.dumps(chunk), verify=False)
+            if response.status_code not in (200, 201, 204):
+                self.logger.fatal('KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
+                    'content={}'.format(kv_url, record, response.status_code, response.text))
+            else:
+                processed_count = processed_count + chunk_len
+
+        # run a Splunk control search, get the number of record matching the batch_uuid
+        url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
+
+        # Define and run a Splunk search
+        kvstore_count = 0
+        search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(batch_uuid) + "\" | stats count"
+        output_mode = "csv"
+        exec_mode = "oneshot"
+        response = requests.post(url, headers=headers, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+        try:
+            # Use the CSV dict reader
+            readCSV = csv.DictReader(response.text.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
+            for row in readCSV:
+                kvstore_count = int(row['count'])
+        except Exception as e:
+            kvstore_count = -1
+
+        if (results_count == processed_count) and (results_count == kvstore_count):
+            action = "success"
+            result = "MQ KVstore publication success, all messages were successfully inserted in the collection."
+        elif (kvstore_count<results_count) and self.dedup == 'False' and kvstore_count!=-1:
+            action = "failure"
+            result = "MQ KVstore publication failure, not all messages could be inserted into the collection, run this job again with dedup=True if due to a temporary error."
+        elif (kvstore_count<results_count) and self.dedup == 'True' and kvstore_count!=-1:
+            action = "failure"
+            result = "MQ KVstore publication failure, not all messages could be inserted into the collection, dedup is enabled so this likely is caused by duplicate messages provided as part of the results, review the messages that were submitted."
+        elif kvstore_count == -1:
+            action = "failure"
+            result = "MQ KVstore publication failure, the number of messages inserted in the KVstore could not be verified, maybe the Splunk search has failed, review the job inspector for more information."
+        else:
+            action = "failure"
+            result = "MQ KVstore publication failure, not all messages could be processed, review the job inspector for more information."
+
+        raw = {
+            "action": str(action),
+            "result": str(result),
+            "results_count": str(results_count),
+            "processed_count": str(processed_count),
+            "kvstore_count": str(kvstore_count),
+            "batch_uuid": str(batch_uuid)
+        }
+
+        yield {'_time': time.time(), '_raw': json.dumps(raw, indent=4), 'action': str(action), 'result': str(result), 'result_count': str(results_count), 'process_count': str(processed_count), 'kvstore_count': str(kvstore_count), 'batch_uuid': str(batch_uuid)}
 
 dispatch(PutMqRelay, sys.argv, sys.stdin, sys.stdout, __name__)
