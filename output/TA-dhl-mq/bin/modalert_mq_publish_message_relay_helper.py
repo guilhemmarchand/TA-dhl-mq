@@ -6,11 +6,6 @@ def checkstrforjson(i):
 
     if i is not None:
         i = i.replace("\\", "\\\\")
-        # Manage line breaks
-        i = i.replace("\n", "\\n")
-        i = i.replace("\r", "\\r")
-        # Manage tabs
-        i = i.replace("\t", "\\t")
         # Manage breaking delimiters
         i = i.replace("\"", "\\\"")
         return i       
