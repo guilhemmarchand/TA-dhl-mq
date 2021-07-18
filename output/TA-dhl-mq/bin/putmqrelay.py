@@ -78,12 +78,6 @@ class PutMqRelay(StreamingCommand):
 
         if i is not None:
             i = i.replace("\\", "\\\\")
-            # Manage line breaks
-            i = i.replace("\n", "\\n")
-            i = i.replace("\r", "\\r")
-            # Manage tabs
-            i = i.replace("\t", "\\t")
-            # Manage breaking delimiters
             i = i.replace("\"", "\\\"")
             return i
 
@@ -138,10 +132,6 @@ class PutMqRelay(StreamingCommand):
                     if key == "no_max_retry":
                         no_max_retry = value
 
-        # Set the dedup mode
-        if not self.dedup:
-            self.dedup = 'True'
-
         # Set the validation required
         if not self.validation_required:
             validation_required = 0
@@ -173,10 +163,7 @@ class PutMqRelay(StreamingCommand):
             status = 'pending'
 
             # use the MD5 sum of the message as a unique key identifier
-            if self.dedup == 'True':
-                keyrecord = hashlib.md5(message.encode('utf-8')).hexdigest()
-            else:
-                keyrecord = random.getrandbits(128)
+            keyrecord = hashlib.md5(message.encode('utf-8')).hexdigest()
 
             # Get some requires fields length for reporting and verification purposes
             appname_len = len(appname)
@@ -270,10 +257,7 @@ class PutMqRelay(StreamingCommand):
         if (results_count == processed_count) and (results_count == kvstore_count):
             action = "success"
             result = "MQ KVstore publication success, all messages were successfully inserted in the collection."
-        elif (kvstore_count<results_count) and self.dedup == 'False' and kvstore_count!=-1:
-            action = "failure"
-            result = "MQ KVstore publication failure, not all messages could be inserted into the collection, run this job again with dedup=True if due to a temporary error."
-        elif (kvstore_count<results_count) and self.dedup == 'True' and kvstore_count!=-1:
+        elif (kvstore_count<results_count) and kvstore_count!=-1:
             action = "failure"
             result = "MQ KVstore publication failure, not all messages could be inserted into the collection, dedup is enabled so this likely is caused by duplicate messages provided as part of the results, review the messages that were submitted."
         elif kvstore_count == -1:

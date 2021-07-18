@@ -114,8 +114,10 @@ class GetMqReplay(GeneratingCommand):
             #
 
             # For row in CSV, generate the _raw
+            count = 0
             for row in readCSV:
 
+                count +=1
                 # dynamic destination
                 deststr = "@" + str(uuid) + "@" + str(row['manager']) + "@" + str(row['queue']) + "@"
                 destfile = str(batchfolder) + "/" + str(deststr) + ".raw"
@@ -124,7 +126,7 @@ class GetMqReplay(GeneratingCommand):
 
                 # append to the batchfile
                 with open(str(destfile), 'a') as f:
-                    f.write(str(row['message']))
+                    f.write(str(row['message']) + "\n")
 
                 # write keys to the log file
                 with open(str(destkeys), 'a') as f:
@@ -138,6 +140,9 @@ class GetMqReplay(GeneratingCommand):
                         + ", appname=" + str(row['appname']) + ", region=" + str(row['region']) \
                         + ", key=" + str(row['_key']) + "\n"
                     f.write(str(logmsg))
+
+            if count == 0:
+                sys.exit(0)
 
             #
             # OUT RECORDS
@@ -155,6 +160,7 @@ class GetMqReplay(GeneratingCommand):
                     instance_keyfile = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.keys"
                     instance_logfile = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.log"
                     instance_rawfile = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.raw"
+                    instance_temp = str(batchfolder) + "/" + "@" + str(uuid) + "@" + str(mqmanager) + "@" + str(mqqueuedest) + "@.tmp"
 
                     # get the configuration for this account
                     # Get conf, fail if does not exist
@@ -176,9 +182,17 @@ class GetMqReplay(GeneratingCommand):
                     if not isfound:
                         self.logger.fatal('This Queue manager has not been configured on this instance, cannot proceed!: %s', self)
                         # remove log and keys
-                        os.remove(instance_keyfile)
-                        os.remove(instance_logfile)
-                        os.remove(instance_rawfile)
+                        # purge files
+                        if os.path.isfile(shellbatchname):
+                            os.remove(str(shellbatchname))
+                        if os.path.isfile(instance_keyfile):
+                            os.remove(instance_keyfile)
+                        if os.path.isfile(instance_logfile):
+                            os.remove(instance_logfile)
+                        if os.path.isfile(instance_temp):
+                            os.remove(instance_temp)
+                        if os.path.isfile(instance_rawfile):
+                            os.remove(instance_rawfile)
 
                     # proceed
                     else:
@@ -186,11 +200,18 @@ class GetMqReplay(GeneratingCommand):
                         # our shell wrapper
                         shellbatchname = str(batchfolder) + "/" + str(uuid) + "-wrapper.sh"
 
+                        # MQ will limit the number of messages that can be sent in a single exeuction
+                        # To be able to handle any volume of messages, proceed by chunk of x messages
+                        records_list = []
+
+                        # open the raw file, add to the list
+                        records_list = open(instance_rawfile,'r').read().splitlines()
+
                         # our shell script content
                         shellcontent = '#!/bin/bash\n' +\
                         '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
                         'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-                        str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(batchfolder) + "/" + str(filename) + '\n' +\
+                        str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(instance_temp) + '\n' +\
                         'RETCODE=$?\n' +\
                         'if [ $RETCODE -ne 0 ]; then\n' +\
                         'echo "Failure with exit code $RETCODE"\n' +\
@@ -206,83 +227,103 @@ class GetMqReplay(GeneratingCommand):
                                 f.write(shellcontent)
                             os.chmod(str(shellbatchname), 0o740)
 
-                        # Execute the Shell batch now
-                        output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+                        # proceed by chunk, write to the file, execute
+                        chunks = [records_list[i:i + 500] for i in range(0, len(records_list), 500)]
+                        for chunk in chunks:
+                            chunk_hashes = []
+                            if os.path.isfile(str(instance_temp)):
+                                os.remove(str(instance_temp))
 
-                        # purge both files
-                        os.remove(str(shellbatchname))
-                        os.remove(str(batchfolder) + "/" + str(filename))
+                            with open(str(instance_temp), 'w') as f:
+                                for message in chunk:
+                                    f.write(message + '\n')
 
-                        # load the record list from the file
-                        keys_list = open(instance_keyfile).read().splitlines()
-                        count = 0
-                        search_filter = ""
-                        # create a search filter
-                        for key_record in keys_list:
-                            count +=1
-                            if count>1:
-                                search_filter = str(search_filter) + " OR _key=\"" + str(key_record) + "\""
+                            f = open(instance_temp, "r")
+                            for message in f:
+                                message_hash = hashlib.md5(str(message).encode('utf-8')).hexdigest()
+                                chunk_hashes.append(message_hash)
+                            f.close()
+
+                            # Execute the Shell batch now
+                            output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+
+                            # load the processed hashes
+                            count = 0
+                            search_filter = ""
+                            # create a search filter
+                            for message_hash in chunk_hashes:
+                                count +=1
+                                if count>1:
+                                    search_filter = str(search_filter) + " OR _key=\"" + str(message_hash) + "\""
+                                else:
+                                    search_filter = "_key=\"" + str(message_hash) + "\""
+
+                            # From the output of the subprocess, determine the publication status
+                            # If an exception was raised, it will be added to the error message
+                            if "Success" in str(output):
+
+                                search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"success\", mtime=now() | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+                                output_mode = "csv"
+                                exec_mode = "oneshot"
+                                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                                if response.status_code not in (200, 201, 204):
+                                    self.logger.fatal('Error in KVstore mass update!: %s', self)
+
+                                # log
+                                inputlog = open(instance_logfile, "r")
+                                outputlog = open(splunklogfile, "a")
+                                import datetime
+                                t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                                for line in inputlog:
+                                    outputlog.write(str(t[:-3]) + " INFO file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
+                                inputlog.close()
+                                outputlog.close()
+
+                                # output a report to Splunk
+                                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "MQ batch successful with " \
+                                    + str(count) + " messages processed, consult the logs for more information.}"}
+                                yield data
+
                             else:
-                                search_filter = "_key=\"" + str(key_record) + "\""
+                                self.logger.fatal('MQ send has failed!: %s', self)
+                                search = str(search) + " where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+                                output_mode = "csv"
+                                exec_mode = "oneshot"
+                                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
 
-                        # From the output of the subprocess, determine the publication status
-                        # If an exception was raised, it will be added to the error message
-                        if "Success" in str(output):
+                                if response.status_code not in (200, 201, 204):
+                                    self.logger.fatal('Error in KVstore mass update!: %s', self)
 
-                            search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"success\", mtime=now() | outputlookup mq_publish_backlog append=t key_field=key | stats c"
-                            output_mode = "csv"
-                            exec_mode = "oneshot"
-                            response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                                # log
+                                inputlog = open(instance_logfile, "r")
+                                outputlog = open(splunklogfile, "a")
+                                import datetime
+                                t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                                for line in inputlog:
+                                    outputlog.write(str(t[:-3]) + " ERROR file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"failure\"\"\n")
+                                inputlog.close()
+                                outputlog.close()
 
-                            if response.status_code not in (200, 201, 204):
-                                self.logger.fatal('Error in KVstore mass update!: %s', self)
+                                # output a report to Splunk
+                                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "ERROR: MQ batch batch has failed, consult the logs for more information.}"}
 
-                            # log
-                            inputlog = open(instance_logfile, "r")
-                            outputlog = open(splunklogfile, "a")
-                            import datetime
-                            t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
-                            for line in inputlog:
-                                outputlog.write(str(t[:-3]) + " INFO file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
-                            inputlog.close()
-                            outputlog.close()
-
-                            # output a report to Splunk
-                            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "MQ batch successful with " \
-                                + str(count) + " messages processed, consult the logs for more information.}"}
-                            yield data
-
-                        else:
-                            self.logger.fatal('MQ send has failed!: %s', self)
-                            search = str(search) + " where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
-                            output_mode = "csv"
-                            exec_mode = "oneshot"
-                            response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
-
-                            if response.status_code not in (200, 201, 204):
-                                self.logger.fatal('Error in KVstore mass update!: %s', self)
-
-                            # log
-                            inputlog = open(instance_logfile, "r")
-                            outputlog = open(splunklogfile, "a")
-                            import datetime
-                            t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
-                            for line in inputlog:
-                                outputlog.write(str(t[:-3]) + " ERROR file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + ", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"failure\"\"\n")
-                            inputlog.close()
-                            outputlog.close()
-
-                            # output a report to Splunk
-                            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "ERROR: MQ batch batch has failed, consult the logs for more information.}"}
-
-                            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "ERROR: MQ batch has failed to process " \
-                                + str(count) + " messages, consult the logs for more information.}"}
-                            yield data
+                                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "ERROR: MQ batch has failed to process " \
+                                    + str(count) + " messages, consult the logs for more information.}"}
+                                yield data
 
 
-                        # remove log and keys
-                        os.remove(instance_keyfile)
-                        os.remove(instance_logfile)
+                        # purge files
+                        if os.path.isfile(shellbatchname):
+                            os.remove(str(shellbatchname))
+                        if os.path.isfile(instance_keyfile):
+                            os.remove(instance_keyfile)
+                        if os.path.isfile(instance_logfile):
+                            os.remove(instance_logfile)
+                        if os.path.isfile(instance_rawfile):
+                            os.remove(instance_rawfile)
+                        if os.path.isfile(instance_temp):
+                            os.remove(instance_temp)
 
         else:
 
