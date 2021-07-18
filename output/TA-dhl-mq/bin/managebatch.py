@@ -74,8 +74,6 @@ class ManagePendingBatch(GeneratingCommand):
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
             csv_data = response.text
 
-            self.logger.fatal(response.text)
-
             # Use the CSV dict reader
             readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
 
