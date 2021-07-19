@@ -31,8 +31,8 @@
       <title>Click on a pending batch to validate the submission and free the publication of the associated messages</title>
       <table rejects="$show_null_results$">
         <search>
-          <query>| inputlookup mq_publish_backlog where validation_required=1 
-| stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue by batch_uuid</query>
+          <query>| inputlookup mq_publish_backlog where validation_required=1
+| stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as requester by batch_uuid</query>
           <done>
               <condition match="$job.resultCount$ == 0">
                   <set token="show_null_results">true</set>

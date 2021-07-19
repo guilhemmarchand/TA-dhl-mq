@@ -296,7 +296,7 @@ class PutMqRelay(StreamingCommand):
             + '\", kvstore_count=\"' + str(kvstore_count) \
             + '\", batch_uuid=\"' + str(batch_uuid) \
             + '\", user=\"' + str(user) + '\"'
-        outputlog.write(str(t[:-3]) + " INFO file=putmqrelay.py | customaction - signature=\"putmqrelay custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" user=\"admin\" action_mode=\"saved\" action_status=\"success\"\"\n")
+        outputlog.write(str(t[:-3]) + " INFO file=putmqrelay.py | customaction - signature=\"putmqrelay custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\"\"\n")
         outputlog.close()
 
         yield {'_time': time.time(), '_raw': json.dumps(raw, indent=4), 'action': str(action), 'result': str(result), 'result_count': str(results_count), 'process_count': str(processed_count), 'kvstore_count': str(kvstore_count), 'batch_uuid': str(batch_uuid)}

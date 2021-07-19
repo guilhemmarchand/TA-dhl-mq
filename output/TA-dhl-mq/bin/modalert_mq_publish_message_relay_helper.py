@@ -371,6 +371,7 @@ def process_event(helper, *args, **kwargs):
                         + ", queue=" + str(mqqueuedest) \
                         + ", appname=" + str(appname) + ", region=" + str(region) \
                         + ", batch_uuid=" + str(batch_uuid) \
+                        + ", user=" + str(user) \
                         + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
                         helper.log_info(logmsg)
 
@@ -397,6 +398,7 @@ def process_event(helper, *args, **kwargs):
                         + ", queue=" + str(mqqueuedest) \
                         + ", appname=" + str(appname) + ", region=" + str(region) \
                         + ", batch_uuid=" + str(batch_uuid) \
+                        + ", user=" + str(user) \
                         + ", message_length=" + str(msgpayload_len) + ", key=" + str(key) \
                         + ", exception=" + str(output)
                         helper.log_error(logmsg)
