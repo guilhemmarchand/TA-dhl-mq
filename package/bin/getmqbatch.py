@@ -124,7 +124,7 @@ class GetMqReplay(GeneratingCommand):
 
                 # append to the batchfile
                 with open(str(destfile), 'a') as f:
-                    f.write(str(row['message']))
+                    f.write(str(row['message']).strip('\n') + '\n')
 
                 # write keys to the log file
                 with open(str(destkeys), 'a') as f:

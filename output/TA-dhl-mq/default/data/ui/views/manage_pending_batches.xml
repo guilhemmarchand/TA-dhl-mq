@@ -29,9 +29,22 @@
   <row>
     <panel>
       <title>Click on a pending batch to validate the submission and free the publication of the associated messages</title>
-      <table rejects="$show_null_results$">
+      <input type="dropdown" token="batch_uuid" searchWhenChanged="true">
+        <label>batch_uuid</label>
+        <choice value="*">ALL</choice>
+        <initialValue>*</initialValue>
+        <default>*</default>
+        <fieldForLabel>batch_uuid</fieldForLabel>
+        <fieldForValue>batch_uuid</fieldForValue>
+        <prefix>batch_uuid="</prefix>
+        <suffix>"</suffix>
         <search>
-          <query>| inputlookup mq_publish_backlog where validation_required=1
+          <query>| inputlookup mq_publish_backlog where validation_required=1 | stats count by batch_uuid | fields batch_uuid | sort limit=10000 batch_uuid</query>
+        </search>
+      </input>
+      <table rejects="$show_null_results$">
+        <search id="baseSearch">
+          <query>| inputlookup mq_publish_backlog where validation_required=1 | search $batch_uuid$
 | stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as requester by batch_uuid</query>
           <done>
               <condition match="$job.resultCount$ == 0">

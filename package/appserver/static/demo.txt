@@ -1,0 +1,121 @@
+<form theme="dark" script="TA-dhl-mq:sendtomq.js">
+  <label>DEMO - Active button to send to MQ</label>
+  <search id="baseSearch">
+    <query>| essrest cluster=LAB index=dhl | spath | search message_type!=multilinexml transid=*
+| stats count by transid, region, message_type</query>
+    <earliest>$timerange.earliest$</earliest>
+    <latest>$timerange.latest$</latest>
+  </search>
+  <fieldset submitButton="false">
+    <input type="time" token="timerange" searchWhenChanged="true">
+      <label></label>
+      <default>
+        <earliest>-15m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="multiselect" token="region" searchWhenChanged="true">
+      <label>region</label>
+      <choice value="*">ANY</choice>
+      <fieldForLabel>region</fieldForLabel>
+      <fieldForValue>region</fieldForValue>
+      <search base="baseSearch">
+        <query>stats count by region | fields region | sort region</query>
+      </search>
+      <initialValue>*</initialValue>
+      <valuePrefix>region="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="dropdown" token="message_type" searchWhenChanged="true">
+      <label>message_type</label>
+      <choice value="*">ANY</choice>
+      <prefix>message_type="</prefix>
+      <suffix>"</suffix>
+      <fieldForLabel>message_type</fieldForLabel>
+      <fieldForValue>message_type</fieldForValue>
+      <search base="baseSearch">
+        <query>search $region$ | stats count by message_type | fields message_type | sort message_type</query>
+      </search>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="transid" searchWhenChanged="true">
+      <label>transid</label>
+      <choice value="*">ANY</choice>
+      <fieldForLabel>transid</fieldForLabel>
+      <fieldForValue>transid</fieldForValue>
+      <search base="baseSearch">
+        <query>search $region$ $message_type$ | stats count by transid | fields transid | sort transid</query>
+      </search>
+      <initialValue>*</initialValue>
+      <valuePrefix>transid="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <search base="mqresults">
+          <query>stats count</query>
+        </search>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="underLabel">NUMBER OF MESSAGES FOUND</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+          <div style="text-align: center;" class="active-button">
+              <button class="btn btn-default btn-primary pull-center" data-token-name="sendtomq" data-alt-label="Hide the MQ send results" data-token-value="true">
+            <span class="glyphicon glyphicon-remove"/> Send these messages to MQ with pending validation</button>
+          </div>
+      </html>
+      <table depends="$sendtomq$">
+        <title>MQ publication results - click on the row bellow to access to the MQ pending batch interface</title>
+        <search depends="$sendtomq$">
+          <query>$tkmqsearch$
+| putmqrelay field_message="required" field_appname="appname" field_manager="manager" field_queue="queue" field_region="region" dedup=True validation_required=True
+| rename _raw as results | fields _time, results, batch_uuid</query>
+          <earliest>$tkmqearliest$</earliest>
+          <latest>$tkmqlatest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_blank">/app/TA-dhl-mq/manage_pending_batches?form.batch_uuid=$row.batch_uuid$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <search id="mqresults">
+          <query>| essrest cluster=LAB index=dhl | spath | search $region$ $message_type$ $transid$
+| eval appname="DMG", manager="QM1", queue="DEV.QUEUE.1"
+| table _time, appname, manager, queue, region, message_type, transid, shpid, required | addinfo</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+          <progress>
+            <condition>
+              <set token="tkmqsearch">| essrest cluster=LAB index=dhl | spath | search $region$ $message_type$ $transid$ | eval appname="DMG", manager="QM1", queue="DEV.QUEUE.1" | table _time, appname, manager, queue, region, message_type, transid, shpid, required</set>
+              <set token="tkmqearliest">$result.info_min_time$</set>
+              <set token="tkmqlatest">$result.info_max_time$</set>
+            </condition>
+          </progress>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>
