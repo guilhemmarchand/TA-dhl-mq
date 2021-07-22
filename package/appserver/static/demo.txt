@@ -1,7 +1,7 @@
 <form theme="dark" script="TA-dhl-mq:sendtomq.js">
-  <label>DEMO - Active button to send to MQ</label>
+  <label>DEMO - Dashboard active button calling putmqrelay to Splunk resulting messages to IBM MQ</label>
   <search id="baseSearch">
-    <query>| essrest cluster=LAB index=dhl | spath | search message_type!=multilinexml transid=*
+    <query>| essrest cluster=LAB index=dcvs-* | spath | search message_type!=multilinexml transid=*
 | stats count by transid, region, message_type</query>
     <earliest>$timerange.earliest$</earliest>
     <latest>$timerange.latest$</latest>
@@ -14,19 +14,6 @@
         <latest>now</latest>
       </default>
     </input>
-    <input type="multiselect" token="region" searchWhenChanged="true">
-      <label>region</label>
-      <choice value="*">ANY</choice>
-      <fieldForLabel>region</fieldForLabel>
-      <fieldForValue>region</fieldForValue>
-      <search base="baseSearch">
-        <query>stats count by region | fields region | sort region</query>
-      </search>
-      <initialValue>*</initialValue>
-      <valuePrefix>region="</valuePrefix>
-      <valueSuffix>"</valueSuffix>
-      <delimiter> OR </delimiter>
-    </input>
     <input type="dropdown" token="message_type" searchWhenChanged="true">
       <label>message_type</label>
       <choice value="*">ANY</choice>
@@ -35,7 +22,7 @@
       <fieldForLabel>message_type</fieldForLabel>
       <fieldForValue>message_type</fieldForValue>
       <search base="baseSearch">
-        <query>search $region$ | stats count by message_type | fields message_type | sort message_type</query>
+        <query>stats count by message_type | fields message_type | sort message_type</query>
       </search>
       <default>*</default>
       <initialValue>*</initialValue>
@@ -46,7 +33,7 @@
       <fieldForLabel>transid</fieldForLabel>
       <fieldForValue>transid</fieldForValue>
       <search base="baseSearch">
-        <query>search $region$ $message_type$ | stats count by transid | fields transid | sort transid</query>
+        <query>search $message_type$ | stats count by transid | fields transid | sort transid</query>
       </search>
       <initialValue>*</initialValue>
       <valuePrefix>transid="</valuePrefix>
@@ -67,16 +54,26 @@
   </row>
   <row>
     <panel>
+      <input type="text" token="tk_dest_manager" searchWhenChanged="true">
+        <label>Enter the Queue Manager:</label>
+      </input>
+      <input type="text" token="tk_dest_queue" searchWhenChanged="true">
+        <label>Enter the destination Queue:</label>
+      </input>
+      <input type="text" token="tk_dest_region" searchWhenChanged="true">
+        <label>Enter the destination region:</label>
+      </input>
       <html>
           <div style="text-align: center;" class="active-button">
-              <button class="btn btn-default btn-primary pull-center" data-token-name="sendtomq" data-alt-label="Hide the MQ send results" data-token-value="true">
-            <span class="glyphicon glyphicon-remove"/> Send these messages to MQ with pending validation</button>
+              <button class="btn btn-default btn-primary pull-center" data-token-name="sendtomq" data-alt-label="Hide the MQ send results (update your selection to perform another MQ send operation)" data-token-value="true">
+            <span class="glyphicon glyphicon-remove"/>Send these messages to MQ with pending validation</button>
           </div>
       </html>
-      <table depends="$sendtomq$">
+      <table depends="$sendtomq$ $tkmqsearch$">
         <title>MQ publication results - click on the row bellow to access to the MQ pending batch interface</title>
-        <search depends="$sendtomq$">
+        <search depends="$sendtomq$ $tk_dest_region$ $tk_dest_manager$ $tk_dest_queue$">
           <query>$tkmqsearch$
+| eval region="$tk_dest_region$", manager="$tk_dest_manager$", queue="$tk_dest_queue$"
 | putmqrelay field_message="required" field_appname="appname" field_manager="manager" field_queue="queue" field_region="region" dedup=True validation_required=True
 | rename _raw as results | fields _time, results, batch_uuid</query>
           <earliest>$tkmqearliest$</earliest>
@@ -93,20 +90,20 @@
     <panel>
       <table>
         <search id="mqresults">
-          <query>| essrest cluster=LAB index=dhl | spath | search $region$ $message_type$ $transid$
-| eval appname="DMG", manager="QM1", queue="DEV.QUEUE.1"
-| table _time, appname, manager, queue, region, message_type, transid, shpid, required | addinfo</query>
+          <query>| essrest cluster=LAB index=dcvs-* | rex field="index" "^(?&lt;appname&gt;\w*)[\-|\_]" | spath | search $message_type$ $transid$
+| table _time, appname, message_type, transid, shpid, required | addinfo</query>
           <earliest>$timerange.earliest$</earliest>
           <latest>$timerange.latest$</latest>
           <sampleRatio>1</sampleRatio>
           <progress>
             <condition>
-              <set token="tkmqsearch">| essrest cluster=LAB index=dhl | spath | search $region$ $message_type$ $transid$ | eval appname="DMG", manager="QM1", queue="DEV.QUEUE.1" | table _time, appname, manager, queue, region, message_type, transid, shpid, required</set>
+              <set token="tkmqsearch">| essrest cluster=LAB index=dcvs-* | rex field="index" "^(?&lt;appname&gt;\w*)[\-|\_]" | spath | search $message_type$ $transid$ | table _time, appname, message_type, transid, shpid, required</set>
               <set token="tkmqearliest">$result.info_min_time$</set>
               <set token="tkmqlatest">$result.info_max_time$</set>
             </condition>
           </progress>
         </search>
+        <option name="fields">_time, appname, message_type, transid, shpid, required</option>
         <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>

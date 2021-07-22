@@ -1,10 +1,13 @@
-<dashboard theme="dark">
+<dashboard theme="dark" script="TA-dhl-mq:manage_pending_batches.js">
   <label>Manage pending batches</label>
+  <init>
+  <set token="tk_refresh">false</set>
+  </init>
   <row>
     <panel>
       <single>
-        <search>
-          <query>| inputlookup mq_publish_backlog where validation_required=1 | stats dc(batch_uuid) as dcount</query>
+        <search depends="$tk_refresh$">
+          <query>| inputlookup mq_publish_backlog where validation_required=1 | search $batch_uuid$ | stats dc(batch_uuid) as dcount</query>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
@@ -28,6 +31,16 @@
   </row>
   <row>
     <panel>
+      <html>
+          <div style="text-align: center;" class="active-button">
+              <button class="btn btn-default btn-primary pull-left">
+            <span class="glyphicon glyphicon-remove"/> Refresh</button>
+          </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
       <title>Click on a pending batch to validate the submission and free the publication of the associated messages</title>
       <input type="dropdown" token="batch_uuid" searchWhenChanged="true">
         <label>batch_uuid</label>
@@ -38,12 +51,12 @@
         <fieldForValue>batch_uuid</fieldForValue>
         <prefix>batch_uuid="</prefix>
         <suffix>"</suffix>
-        <search>
+        <search depends="$tk_refresh$">
           <query>| inputlookup mq_publish_backlog where validation_required=1 | stats count by batch_uuid | fields batch_uuid | sort limit=10000 batch_uuid</query>
         </search>
       </input>
       <table rejects="$show_null_results$">
-        <search id="baseSearch">
+        <search id="baseSearch" depends="$tk_refresh$">
           <query>| inputlookup mq_publish_backlog where validation_required=1 | search $batch_uuid$
 | stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as requester by batch_uuid</query>
           <done>
@@ -68,15 +81,15 @@
         </drilldown>
       </table>
       <html depends="$show_null_results$">
-        <h2 style="text-align: center; font-style: italic;">There are no pending batches currently</h2>
+        <h2 style="text-align: center; font-style: italic;">There are no pending batches currently, or the selected batch was processed (click on the refresh button)</h2>
       </html>
     </panel>
   </row>
-  <row depends="$showresult$">
+  <row depends="$showresult$" rejects="$tk_hide_validation$">
     <panel>
       <title>Activation result:</title>
       <table>
-        <search depends="$showresult$ $batch_uuid$">
+        <search depends="$showresult$ $batch_uuid$" rejects="$tk_hide_validation$">
           <query>| managebatch batch_uuid="$batch_uuid$"
 | table action, batch_uuid, region, appname, validation_required, count, manager, queue
 | eval action=case(action="success", action . " ✅", action="*_failure", action . " ⭕")</query>

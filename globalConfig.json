@@ -455,7 +455,7 @@
         "apiVersion": "3.2.0",
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R920b67b",
+        "version": "0.0.0R27cd50a",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.2"
     }
