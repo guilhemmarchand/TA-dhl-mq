@@ -83,7 +83,7 @@ class ManagePendingBatch(GeneratingCommand):
             csv_data = response.text
 
             # Use the CSV dict reader
-            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
+            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
 
             # For row in CSV, generate the _raw
             for row in readCSV:

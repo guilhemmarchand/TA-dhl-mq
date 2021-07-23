@@ -107,7 +107,7 @@ class GetMqReplay(GeneratingCommand):
             splunklogfile = SPLUNK_HOME + "/var/log/splunk/mq_publish_message_relay_massbatch.log"
 
             # Use the CSV dict reader
-            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
+            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
 
             #
             # IN RECORDS
@@ -124,7 +124,9 @@ class GetMqReplay(GeneratingCommand):
 
                 # append to the batchfile
                 with open(str(destfile), 'a') as f:
-                    f.write(str(row['message']).strip('\n') + '\n')
+                    message=str(row['message']).strip('\n') + '\n'
+                    message=message.replace('\\\"', '\"')
+                    f.write(str(message))
 
                 # write keys to the log file
                 with open(str(destkeys), 'a') as f:

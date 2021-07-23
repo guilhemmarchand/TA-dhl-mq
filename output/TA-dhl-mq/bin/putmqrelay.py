@@ -256,7 +256,7 @@ class PutMqRelay(StreamingCommand):
         response = requests.post(url, headers=headers, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
         try:
             # Use the CSV dict reader
-            readCSV = csv.DictReader(response.text.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
+            readCSV = csv.DictReader(response.text.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
             for row in readCSV:
                 kvstore_count = int(row['count'])
         except Exception as e:

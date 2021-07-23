@@ -76,11 +76,12 @@ class GetMqReplay(GeneratingCommand):
             csv_data = response.text
 
             # Use the CSV dict reader
-            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=','.encode('utf-8'), quotechar='"'.encode('utf-8'))
+            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
 
             # For row in CSV, generate the _raw
             for row in readCSV:
-                yield {'_time': time.time(), '_raw': str(row), '_key': str(row['_key']), 'message': str(row['message']), 'multiline': str(row['multiline']), 'appname': str(row['appname']), 'region': str(row['region']), 'ctime': str(row['ctime']), 'mtime': str(row['mtime']), 'manager': str(row['manager']), 'status': str(row['status']), 'queue': str(row['queue']), 'no_max_retry': str(row['no_max_retry']), 'no_attempts': str(row['no_attempts']), 'user': str(row['user']), 'batch_uuid': str(row['batch_uuid']), 'validation_required': str(row['validation_required'])}
+                message = str(row['message']).replace('\\\"', '\"')
+                yield {'_time': time.time(), '_raw': str(row), '_key': str(row['_key']), 'message': str(message), 'multiline': str(row['multiline']), 'appname': str(row['appname']), 'region': str(row['region']), 'ctime': str(row['ctime']), 'mtime': str(row['mtime']), 'manager': str(row['manager']), 'status': str(row['status']), 'queue': str(row['queue']), 'no_max_retry': str(row['no_max_retry']), 'no_attempts': str(row['no_attempts']), 'user': str(row['user']), 'batch_uuid': str(row['batch_uuid']), 'validation_required': str(row['validation_required'])}
 
         else:
 
