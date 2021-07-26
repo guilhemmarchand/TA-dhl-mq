@@ -35,10 +35,10 @@ require(["splunkjs/mvc/simplexml/ready!"], function () {
 
       $btn_group.find("button").on("click", function () {
         var $btn = $(this);
-        unsetToken("tk_refresh");
-        setToken("tk_refresh", "true");
-        setToken("tk_hide_validation", "true");
         unsetToken("form.batch_uuid");
+        unsetToken("showresult");
+        mvc.Components.get("baseTable").startSearch();
+        mvc.Components.get("baseSingle").startSearch();
       });
     });
   });
