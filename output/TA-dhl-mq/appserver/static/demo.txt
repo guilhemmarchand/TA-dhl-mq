@@ -68,7 +68,7 @@
   <row>
     <panel>
       <html>
-          <div style="text-align: center;" class="active-button">
+          <div style="text-align: center;" class="sendtomq-button">
               <button class="btn btn-default btn-primary pull-center" data-token-name="sendtomq" data-alt-label="Hide the MQ send results" data-token-value="true">
             <span class="glyphicon glyphicon-remove"/> Send these messages to MQ with pending validation</button>
           </div>

@@ -1,10 +1,10 @@
-<dashboard theme="dark" script="TA-dhl-mq:manage_pending_batches.js">
+<dashboard theme="dark" script="TA-dhl-mq:manage_pending_batches.js,TA-dhl-mq:token_buttons.js,TA-dhl-mq:token_buttons.js">
   <label>Manage pending batches</label>
   <row>
     <panel>
       <single>
         <search id="baseSingle">
-          <query>| inputlookup mq_publish_backlog where validation_required=1 | stats dc(batch_uuid) as dcount</query>
+          <query>| inputlookup mq_publish_backlog where (status="pending" AND validation_required=1) | stats dc(batch_uuid) as dcount</query>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
@@ -29,7 +29,7 @@
   <row>
     <panel>
       <html>
-          <div style="text-align: center;" class="active-button">
+          <div style="text-align: center;" class="refresh-button">
               <button class="btn btn-default btn-primary pull-left">
             <span class="glyphicon glyphicon-remove"/> Refresh</button>
           </div>
@@ -48,14 +48,16 @@
         <fieldForValue>batch_uuid</fieldForValue>
         <prefix>batch_uuid="</prefix>
         <suffix>"</suffix>
-        <search>
-          <query>| inputlookup mq_publish_backlog where validation_required=1 | stats count by batch_uuid | fields batch_uuid | sort limit=10000 batch_uuid</query>
+        <search id="populateSearch">
+          <query>| inputlookup mq_publish_backlog where (status="pending" AND validation_required=1) | stats count by batch_uuid | fields batch_uuid | sort limit=10000 batch_uuid</query>
         </search>
       </input>
       <table rejects="$show_null_results$">
         <search id="baseTable">
-          <query>| inputlookup mq_publish_backlog where validation_required=1 | search $batch_uuid$
-| stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as requester by batch_uuid</query>
+          <query>| inputlookup mq_publish_backlog where (status="pending" AND validation_required=1) | search $batch_uuid$
+| stats min(ctime) as ctime, max(mtime) as mtime, values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as requester by batch_uuid
+| eval ctime=strftime(ctime, "%c"), mtime=strftime(mtime, "%c")
+| fields batch_uuid, ctime, mtime, *</query>
           <done>
               <condition match="$job.resultCount$ == 0">
                   <set token="show_null_results">true</set>
@@ -73,8 +75,10 @@
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
         <drilldown>
-          <set token="showresult">True</set>
-          <set token="batch_uuid">$row.batch_uuid$</set>
+          <set token="showactions">True</set>
+          <unset token="validatebatch"></unset>
+          <unset token="cancelbatch"></unset>
+          <set token="target_batch_uuid">$row.batch_uuid$</set>
         </drilldown>
       </table>
       <html depends="$show_null_results$">
@@ -82,16 +86,55 @@
       </html>
     </panel>
   </row>
-  <row depends="$showresult$">
+
+  <row depends="$showactions$">
+    <panel>
+      <html>
+          <div style="display: flex;">
+            <div style="text-align: center; margin-right: 20px;" class="active-button">
+                <button class="btn btn-default btn-primary pull-center" data-token-name="validatebatch" data-alt-label="Click on the refresh button" data-token-value="true">
+              <span class="glyphicon glyphicon-remove"/> Validate this batch</button>
+            </div>
+            <br />
+            <div style="text-align: center; margin-right: 20px;" class="active-button">
+                <button class="btn btn-default btn-primary pull-center" data-token-name="cancelbatch" data-alt-label="Click on the refresh button" data-token-value="true">
+              <span class="glyphicon glyphicon-remove"/> Cancel this batch</button>
+            </div>
+          </div>
+      </html>
+    </panel>
+  </row>
+
+  <row depends="$showactions$ $validatebatch$">
     <panel>
       <title>Activation result:</title>
       <table>
-        <search depends="$showresult$ $batch_uuid$">
-          <query>| managebatch batch_uuid="$batch_uuid$"
+        <search depends="$validatebatch$ $target_batch_uuid$">
+          <query>| managebatch batch_uuid="$target_batch_uuid$"
 | table action, batch_uuid, region, appname, validation_required, count, manager, queue
 | eval action=case(action="success", action . " ✅", action="*_failure", action . " ⭕")</query>
         </search>
       </table>
     </panel>
   </row>
+
+  <row depends="$showactions$ $cancelbatch$">
+    <panel>
+      <title>Cancel result:</title>
+      <table>
+        <search depends="$cancelbatch$ $target_batch_uuid$">
+          <query>| inputlookup mq_publish_backlog where (status="pending" AND batch_uuid="$target_batch_uuid$") | eval key=_key
+| eval status="canceled"
+| outputlookup append=t key_field=key mq_publish_backlog
+| stats count
+| inputlookup append=t mq_publish_backlog where batch_uuid="$target_batch_uuid$"
+| where isnull(count)
+| stats count, values(status) as status by batch_uuid
+| eval action=if(status="canceled", "success " . " ✅", "failure " . " ⭕")
+| fields action, batch_uuid, *</query>
+        </search>
+      </table>
+    </panel>
+  </row>
+
 </dashboard>

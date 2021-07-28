@@ -67,7 +67,7 @@ class GetMqReplay(GeneratingCommand):
 
             # if mqpassthrough is enabled, search for successful records only
             if str(mqpassthrough) == 'enabled':
-                search = str(search) + " where status=\"success\""
+                search = str(search) + " where (status=\"success\" OR status=\"canceled\")"
             elif kvstore_search_filters:
                 search = str(search) + " where status!=\"success\" validation_required=0 AND ( (multiline=0 AND no_attempts>0) OR (multiline=1) ) | search " + str(kvstore_search_filters)
             output_mode = "csv"

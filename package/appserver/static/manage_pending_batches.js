@@ -30,15 +30,10 @@ require(["splunkjs/mvc/simplexml/ready!"], function () {
     }
 
     // For each button with the class "custom-sub-nav"
-    $(".active-button").each(function () {
+    $(".refresh-button").each(function () {
       var $btn_group = $(this);
-
       $btn_group.find("button").on("click", function () {
-        var $btn = $(this);
-        unsetToken("form.batch_uuid");
-        unsetToken("showresult");
-        mvc.Components.get("baseTable").startSearch();
-        mvc.Components.get("baseSingle").startSearch();
+        location.reload();
       });
     });
   });
