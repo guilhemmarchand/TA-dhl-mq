@@ -1,4 +1,4 @@
-<dashboard theme="dark" script="TA-dhl-mq:manage_pending_batches.js,TA-dhl-mq:token_buttons.js,TA-dhl-mq:token_buttons.js">
+<dashboard theme="dark" script="TA-dhl-mq:manage_pending_batches_v2.js,TA-dhl-mq:token_buttons.js,TA-dhl-mq:token_buttons.js">
   <label>Manage pending batches</label>
   <row>
     <panel>
@@ -126,12 +126,8 @@
           <query>| inputlookup mq_publish_backlog where (status="pending" AND batch_uuid="$target_batch_uuid$") | eval key=_key
 | eval status="canceled"
 | outputlookup append=t key_field=key mq_publish_backlog
-| stats count
-| inputlookup append=t mq_publish_backlog where batch_uuid="$target_batch_uuid$"
-| where isnull(count)
-| stats count, values(status) as status by batch_uuid
-| eval action=if(status="canceled", "success " . " ✅", "failure " . " ⭕")
-| fields action, batch_uuid, *</query>
+| stats values(status) as status, values(batch_uuid) as batch_uuid
+</query>
         </search>
       </table>
     </panel>
