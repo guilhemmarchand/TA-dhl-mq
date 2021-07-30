@@ -52,6 +52,11 @@ class GetMqReplay(GeneratingCommand):
                             bearer_token = value
                         if key == "kvstore_search_filters":
                             kvstore_search_filters = value
+                        if key == "kvstore_eviction":
+                            kvstore_eviction = value
+                        if key == "kvstore_retention":
+                            kvstore_retention = value
+
             
             # Define the headers, use bearer token if instance is not local
             if str(kvstore_instance) != "localhost:8089":
@@ -66,8 +71,13 @@ class GetMqReplay(GeneratingCommand):
             search = "| inputlookup mq_publish_backlog"
 
             # if mqpassthrough is enabled, search for successful records only
-            if str(mqpassthrough) == 'enabled':
-                search = str(search) + " where (status=\"success\" OR status=\"canceled\")"
+            if str(mqpassthrough) == 'enabled':            
+                # optimization: to avoid Splunk using resources cycles, restrict to successful or canceled records depending on the eviction policy
+                if str(kvstore_eviction) == 'delete':
+                    search = str(search) + " where (status=\"success\" OR status=\"canceled\")"
+                else:
+                    search = str(search) + " where (status=\"success\" OR status=\"canceled\")" + '| eval record_age=now()-ctime | eval retention=' + str(kvstore_retention) + '*3600 | where record_age>retention'
+
             elif kvstore_search_filters:
                 search = str(search) + " where status!=\"success\" validation_required=0 AND ( (multiline=0 AND no_attempts>0) OR (multiline=1) ) | search " + str(kvstore_search_filters)
             output_mode = "csv"

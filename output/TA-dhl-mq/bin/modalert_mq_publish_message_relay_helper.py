@@ -254,7 +254,7 @@ def process_event(helper, *args, **kwargs):
         # START LOGIC 
         #
 
-        # if passthrough mode is enabled, this instance will only handle messages that were successfully published
+        # if passthrough mode is enabled, this instance will only handle messages that were successfully published or canceled
 
         if str(mqpassthrough) == "enabled":
 
@@ -263,11 +263,18 @@ def process_event(helper, *args, **kwargs):
             helper.log_debug("record_age={}".format(record_age))
 
             # On the master instance, we handle the lifecyle of messages that were successfully published, and their deletion upon retention reached
-            if str(status) in ("success") and str(kvstore_eviction) == "delete":
-                logmsg = 'record has been successfully published and kvstore_eviction is delete.'
+            if str(status) in ("success", "canceled") and str(kvstore_eviction) == "delete":
+                logmsg = 'record has been successfully published or canceled and kvstore_eviction is delete.'
                 helper.log_debug(logmsg)
 
                 delete_record(helper, key, record_url, headers)
+
+            elif str(status) in ("success", "canceled") and str(kvstore_eviction) == "preserve":
+                if record_age >= kvstore_retention_seconds:
+                    logmsg = 'record has been successfully published or canceled and reached the retention, purging this record.'
+                    helper.log_debug(logmsg)
+
+                    delete_record(helper, key, record_url, headers)
 
             elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
                 logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
