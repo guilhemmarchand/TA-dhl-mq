@@ -1,4 +1,3 @@
-
 [mq_publish_message_relay]
 param._cam = <json> Active response parameters.
 param.key = <string> key. It's a required parameter. It's default value is $result.key$.

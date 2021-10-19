@@ -2,9 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from builtins import object
-import splunktalib.rest as rest
 import splunktalib.common.xml_dom_parser as xdp
+import splunktalib.rest as rest
 
 
 def _do_rest(uri, session_key):
@@ -22,7 +21,7 @@ def _do_rest(uri, session_key):
     return stanza_objs[0]
 
 
-class ServerInfo(object):
+class ServerInfo:
     def __init__(self, splunkd_uri, session_key):
         uri = "{}/services/server/info".format(splunkd_uri)
         server_info = _do_rest(uri, session_key)
@@ -55,24 +54,3 @@ class ServerInfo(object):
 
     def to_dict(self):
         return self._server_info
-
-
-if __name__ == "__main__":
-    import splunktalib.credentials as cred
-
-    sp_uri = "https://localhost:8089"
-    skey = cred.CredentialManager.get_session_key("admin", "admin")
-    si = ServerInfo(sp_uri, skey)
-    assert not si.is_captain()
-
-    sp_uri = "https://qa-systest-03.sv.splunk.com:1901"
-    skey = cred.CredentialManager.get_session_key("admin", "notchagneme")
-    si = ServerInfo(sp_uri, skey)
-    assert si.is_captain()
-    assert si.is_search_head()
-
-    sp_uri = "https://qa-systest-01.sv.splunk.com:1901"
-    skey = cred.CredentialManager.get_session_key("admin", "notchagneme")
-    si = ServerInfo(sp_uri, skey)
-    assert not si.is_captain()
-    assert si.is_search_head()

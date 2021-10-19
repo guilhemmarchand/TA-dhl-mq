@@ -6,17 +6,16 @@
 This module hanles high level TA configuration related stuff
 """
 
-from builtins import object
-import os.path as op
 import copy
+import os.path as op
 
 import splunktalib.common.util as utils
-import splunktalib.credentials as cred
 import splunktalib.conf_manager.conf_manager as conf
 import splunktalib.conf_manager.request as conf_req
+import splunktalib.credentials as cred
 
 
-class TAConfManager(object):
+class TAConfManager:
 
     encrypted_token = "******"
     reserved_keys = ("userName", "appName")
@@ -50,7 +49,7 @@ class TAConfManager(object):
 
     def create(self, stanza):
         """
-        @stanza: dick like object
+        @stanza: dict like object
         {
         "name": xxx,
         "k1": v1,
@@ -68,7 +67,7 @@ class TAConfManager(object):
 
     def update(self, stanza):
         """
-        @stanza: dick like object
+        @stanza: dict like object
         {
         "name": xxx,
         "k1": v1,

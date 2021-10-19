@@ -350,14 +350,14 @@ def process_event(helper, *args, **kwargs):
                     shellcontent = '#!/bin/bash\n' +\
                     '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
                     'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-                    str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + '\n' +\
+                    str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + ' 2>&1\n' +\
                     'RETCODE=$?\n' +\
                     'if [ $RETCODE -ne 0 ]; then\n' +\
                     'echo "Failure with exit code $RETCODE"\n' +\
                     'else\n' +\
                     'echo "Success"\n' +\
                     'fi\n' +\
-                    'exit $RETCODE'
+                    'exit 0'
 
                     helper.log_debug("shellcontent:={}".format(shellcontent))
 

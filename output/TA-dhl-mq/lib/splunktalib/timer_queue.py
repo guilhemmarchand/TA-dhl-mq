@@ -6,20 +6,16 @@
 A timer queue implementation
 """
 
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import object
-import threading
 import queue
-from time import time
+import threading
 import traceback
+from time import time
 
-from splunktalib.timer import Timer
 from splunktalib.common import log
+from splunktalib.timer import Timer
 
 
-class TimerQueue(object):
+class TimerQueue:
     """
     A timer queue implementation, runs a separate thread to handle timers
     """

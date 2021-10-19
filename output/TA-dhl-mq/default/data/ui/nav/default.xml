@@ -2,6 +2,13 @@
 	<view name="overview_mq" default="true" />
 	<view name="manage_pending_batches" />	
     <view name="configuration" />
+	<a href="search?q=%7C%20inputlookup%20mq_publish_backlog%20%7C%20eval%20key%3D_key">MQ KVstore collection</a>
+	<collection label="Logging reports">
+		<saved name="DHL MQ Logs - massbatch logs (singleline messages published in batches)" />
+		<saved name="DHL MQ Logs - relay and multiline publishing logs (re-attempts of failed batches and multiline publishing)" />
+		<saved name="DHL MQ Logs - putmqrelay (submitting messages to the collection for publishing purposes)" />
+		<saved name="DHL MQ Logs - managebatch logs (batch validation by approvers)" />
+	</collection>
     <collection label="Search">
 		<view name="search" />
 		<view name="reports" />

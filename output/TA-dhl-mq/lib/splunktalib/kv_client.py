@@ -2,11 +2,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from builtins import range
-from builtins import object
-import re
 import json
-from defusedxml import cElementTree as et
+import re
+
+from defusedxml import ElementTree as et
 
 import splunktalib.rest as rest
 
@@ -23,7 +22,7 @@ class KVNotExists(KVException):
     pass
 
 
-class KVClient(object):
+class KVClient:
     def __init__(self, splunkd_host, session_key):
         self._splunkd_host = splunkd_host
         self._session_key = session_key
@@ -57,7 +56,7 @@ class KVClient(object):
         path = "./entry/title"
         if m:
             ns = m.group(1)
-            path = "./{%s}entry/{%s}title" % (ns, ns)
+            path = "./{{{}}}entry/{{{}}}title".format(ns, ns)
 
         collections = et.fromstring(content)
         return [node.text for node in collections.iterfind(path)]
@@ -145,17 +144,17 @@ class KVClient(object):
             uri, self._session_key, method, headers, data
         )
         if resp is None and content is None:
-            raise KVException("Failed uri={0}, data={1}".format(uri, data))
+            raise KVException("Failed uri={}, data={}".format(uri, data))
 
         if resp.status in (200, 201):
             return content
         elif resp.status == 409:
-            raise KVAlreadyExists("{0}-{1} already exists".format(uri, data))
+            raise KVAlreadyExists("{}-{} already exists".format(uri, data))
         elif resp.status == 404:
-            raise KVNotExists("{0}-{1} not exists".format(uri, data))
+            raise KVNotExists("{}-{} not exists".format(uri, data))
         else:
             raise KVException(
-                "Failed to {0} {1}, reason={2}".format(method, uri, resp.reason)
+                "Failed to {} {}, reason={}".format(method, uri, resp.reason)
             )
 
     def _get_config_endpoint(self, app, owner, collection=None):
@@ -176,9 +175,9 @@ class KVClient(object):
         uri = uri_template.format(self._splunkd_host, owner, app)
 
         if collection is not None:
-            uri += "/{0}".format(collection)
+            uri += "/{}".format(collection)
             if key_id is not None:
-                uri += "/{0}".format(key_id)
+                uri += "/{}".format(key_id)
         return uri
 
 

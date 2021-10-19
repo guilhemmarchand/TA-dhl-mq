@@ -193,14 +193,14 @@ class GetMqReplay(GeneratingCommand):
                         shellcontent = '#!/bin/bash\n' +\
                         '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
                         'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-                        str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(batchfolder) + "/" + str(filename) + '\n' +\
+                        str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -f ' + str(batchfolder) + "/" + str(filename) + ' 2>&1\n' +\
                         'RETCODE=$?\n' +\
                         'if [ $RETCODE -ne 0 ]; then\n' +\
                         'echo "Failure with exit code $RETCODE"\n' +\
                         'else\n' +\
                         'echo "Success"\n' +\
                         'fi\n' +\
-                        'exit $RETCODE'
+                        'exit 0'
 
                         if os.path.isfile(str(shellbatchname)):
                             os.remove(str(shellbatchname))
@@ -213,7 +213,7 @@ class GetMqReplay(GeneratingCommand):
                         output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
 
                         # purge both files
-                        os.remove(str(shellbatchname))
+                        #os.remove(str(shellbatchname))
                         os.remove(str(batchfolder) + "/" + str(filename))
 
                         # load the record list from the file
@@ -230,6 +230,10 @@ class GetMqReplay(GeneratingCommand):
 
                         # From the output of the subprocess, determine the publication status
                         # If an exception was raised, it will be added to the error message
+
+                        self.logger.fatal("str output:")
+                        self.logger.fatal(str(output))
+
                         if "Success" in str(output):
 
                             search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"success\", mtime=now() | outputlookup mq_publish_backlog append=t key_field=key | stats c"
@@ -257,7 +261,8 @@ class GetMqReplay(GeneratingCommand):
 
                         else:
                             self.logger.fatal('MQ send has failed!: %s', self)
-                            search = str(search) + " where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+                            search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
+                            self.logger.fatal(str(search))
                             output_mode = "csv"
                             exec_mode = "oneshot"
                             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
@@ -271,7 +276,7 @@ class GetMqReplay(GeneratingCommand):
                             import datetime
                             t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
                             for line in inputlog:
-                                outputlog.write(str(t[:-3]) + " ERROR file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + ", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"failure\"\"\n")
+                                outputlog.write(str(t[:-3]) + " ERROR file=getmqbatch.py | customaction - signature=\"failure in message publication, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"failure\"\"\n")
                             inputlog.close()
                             outputlog.close()
 

@@ -12,7 +12,6 @@ import logging.handlers
 import os.path as op
 from threading import Lock
 
-from six import with_metaclass
 from .pattern import Singleton
 from .splunkenv import make_splunkhome_path
 
@@ -50,7 +49,7 @@ class LogException(Exception):
     pass
 
 
-class Logs(with_metaclass(Singleton, object)):
+class Logs(metaclass=Singleton):
     """A singleton class that manage all kinds of logger.
 
     Usage::

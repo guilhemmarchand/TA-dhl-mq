@@ -8,15 +8,14 @@ Copyright (C) 2005-2019 Splunk Inc. All Rights Reserved.
 log utility for TA
 """
 
-from builtins import object
 import logging
 import logging.handlers as handlers
 import os.path as op
-from splunktalib.splunk_platform import make_splunkhome_path
+import time
+
 import splunktalib.common.util as cutil
 from splunktalib.common.pattern import singleton
-
-import time
+from splunktalib.splunk_platform import make_splunkhome_path
 
 logging.Formatter.converter = time.gmtime
 
@@ -39,7 +38,7 @@ def log_enter_exit(logger):
 
 
 @singleton
-class Logs(object):
+class Logs:
     def __init__(self, namespace=None, default_level=logging.INFO):
         self._loggers = {}
         self._default_level = default_level

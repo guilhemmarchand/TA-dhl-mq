@@ -23,10 +23,9 @@ except ImportError:
         from urllib import parse as urlparse
 
 from abc import ABCMeta, abstractmethod
-from six import with_metaclass
 
 try:
-    import xml.etree.cElementTree as ET
+    import xml.etree.ElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
 
@@ -51,7 +50,7 @@ class ModularInputException(Exception):
     pass
 
 
-class ModularInput(with_metaclass(ABCMeta, object)):
+class ModularInput(metaclass=ABCMeta):
     """Base class of Splunk modular input.
 
     It's a base modular input, it should be inherited by sub modular input. For
