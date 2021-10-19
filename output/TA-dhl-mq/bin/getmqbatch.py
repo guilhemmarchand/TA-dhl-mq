@@ -213,7 +213,7 @@ class GetMqReplay(GeneratingCommand):
                         output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
 
                         # purge both files
-                        #os.remove(str(shellbatchname))
+                        os.remove(str(shellbatchname))
                         os.remove(str(batchfolder) + "/" + str(filename))
 
                         # load the record list from the file
@@ -230,9 +230,6 @@ class GetMqReplay(GeneratingCommand):
 
                         # From the output of the subprocess, determine the publication status
                         # If an exception was raised, it will be added to the error message
-
-                        self.logger.fatal("str output:")
-                        self.logger.fatal(str(output))
 
                         if "Success" in str(output):
 
@@ -262,7 +259,8 @@ class GetMqReplay(GeneratingCommand):
                         else:
                             self.logger.fatal('MQ send has failed!: %s', self)
                             search = "| inputlookup mq_publish_backlog where (" + str(search_filter) + ") | eval key=_key, status=\"temporary_failure\", mtime=now(), no_attempts=\"1\" | outputlookup mq_publish_backlog append=t key_field=key | stats c"
-                            self.logger.fatal(str(search))
+                            # for logging
+                            # self.logger.fatal(str(search))
                             output_mode = "csv"
                             exec_mode = "oneshot"
                             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 

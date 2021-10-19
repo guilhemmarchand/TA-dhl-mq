@@ -213,7 +213,7 @@ class GetMqReplay(GeneratingCommand):
                         output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
 
                         # purge both files
-                        #os.remove(str(shellbatchname))
+                        os.remove(str(shellbatchname))
                         os.remove(str(batchfolder) + "/" + str(filename))
 
                         # load the record list from the file
