@@ -1,4 +1,3 @@
-
 # encoding = utf-8
 # Always put this line at the beginning of this file
 import import_declare_test
@@ -7,7 +6,7 @@ import os
 import sys
 
 from splunktaucclib.alert_actions_base import ModularAlertBase
-import modalert_mq_publish_message_relay_helper
+from ta_dhl_mq import modalert_mq_publish_message_relay_helper
 
 class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
 
@@ -15,6 +14,7 @@ class AlertActionWorkermq_publish_message_relay(ModularAlertBase):
         super(AlertActionWorkermq_publish_message_relay, self).__init__(ta_name, alert_name)
 
     def validate_params(self):
+
 
         if not self.get_param("key"):
             self.log_error('key is a mandatory parameter, but its value is None.')
