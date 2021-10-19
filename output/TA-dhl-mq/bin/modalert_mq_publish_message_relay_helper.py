@@ -337,8 +337,8 @@ def process_event(helper, *args, **kwargs):
                         + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
                     helper.log_info(logmsg)
 
-                    # generate a random uuid to name the batch
-                    uuid = uuid.uuid4()
+                    # use the record key to name the batch
+                    uuid = str(key)
 
                     # calculate the length of the message to be published
                     msgpayload_len = len(str(message))
@@ -346,6 +346,12 @@ def process_event(helper, *args, **kwargs):
                     # Generate Shell and batch files
                     shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
                     batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
+
+                    # purge files if exist already
+                    if os.path.isfile(shellbatchname):
+                        os.remove(shellbatchname)
+                    if os.path.isfile(batchfile):
+                        os.remove(batchfile)
 
                     shellcontent = '#!/bin/bash\n' +\
                     '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
@@ -374,7 +380,7 @@ def process_event(helper, *args, **kwargs):
 
                     # purge both baches
                     os.remove(str(shellbatchname))
-                    os.remove(str(batchfile))
+                    #os.remove(str(batchfile))
 
                     # From the output of the subprocess, determine the publication status
                     # If an exception was raised, it will be added to the error message
