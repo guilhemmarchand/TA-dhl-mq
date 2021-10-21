@@ -1,0 +1,206 @@
+<form theme="dark" stylesheet="manage_batch_v100.css" script="manage_batch_v100.js">
+  <label>Manage batches (dev in progress)</label>
+  <search id="baseSingle">
+    <query>| inputlookup mq_publish_backlog | eval key=_key
+| stats min(ctime) as ctime, max(mtime) as mtime, values(user) as submitter, values(appname) as appname, values(manager) as manager, values(queue) as queue, values(region) as region, count by status, batch_uuid</query>
+    <earliest>-5m</earliest>
+    <latest>now</latest>
+  </search>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <single>
+        <search base="baseSingle">
+          <query>stats count</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF BATCHES IN THE COLLECTION</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="baseSingle">
+          <query>stats count(eval(status=="pending")) as count</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="rangeColors">["0x006d9c","0xf8be34"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF PENDING BATCHES</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="baseSingle">
+          <query>stats count(eval(status=="success")) as count</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="rangeColors">["0x006d9c","0x53a051"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF SUCCESSFULLY PROCEEDED BATCHES</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="baseSingle">
+          <query>stats count(eval(status=="temporary_failure")) as count</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="rangeColors">["0x006d9c","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF BATCHES IN TEMPORARY FAILURE</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="baseSingle">
+          <query>stats count(eval(status=="permanent_failure")) as count</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="rangeColors">["0x006d9c","0xdc4e41"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF BATCHES IN PERMANENT FAILURE</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <input type="multiselect" token="batch_uuid" searchWhenChanged="true">
+        <label>batch_uuid:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>batch_uuid</fieldForLabel>
+        <fieldForValue>batch_uuid</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by batch_uuid | sort 0 status</query>
+        </search>
+        <valuePrefix>batch_uuid="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+      <input type="multiselect" token="status" searchWhenChanged="true">
+        <label>status:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>status</fieldForLabel>
+        <fieldForValue>status</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by status | sort 0 status</query>
+        </search>
+        <valuePrefix>status="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+      <input type="multiselect" token="submitter" searchWhenChanged="true">
+        <label>submitter:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>submitter</fieldForLabel>
+        <fieldForValue>submitter</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by submitter | sort 0 status</query>
+        </search>
+        <valuePrefix>submitter="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+      <input type="multiselect" token="appname" searchWhenChanged="true">
+        <label>appname:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>appname</fieldForLabel>
+        <fieldForValue>appname</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by appname | sort 0 appname</query>
+        </search>
+        <valuePrefix>appname="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+      <input type="multiselect" token="manager" searchWhenChanged="true">
+        <label>manager:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>manager</fieldForLabel>
+        <fieldForValue>manager</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by manager | sort 0 manager</query>
+        </search>
+        <valuePrefix>manager="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+      <input type="multiselect" token="queue" searchWhenChanged="true">
+        <label>queue:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>queue</fieldForLabel>
+        <fieldForValue>queue</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by queue | sort 0 queue</query>
+        </search>
+        <valuePrefix>queue="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+      <input type="multiselect" token="region" searchWhenChanged="true">
+        <label>region:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>region</fieldForLabel>
+        <fieldForValue>region</fieldForValue>
+        <search base="baseSingle">
+          <query>stats c by region | sort 0 queue</query>
+        </search>
+        <valuePrefix>region="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+      </input>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+
+        <!-- successful tenant deletion -->
+        <div class="modal fade" id="modal_manage_batch" role="dialog">
+            <div class="modal-dialog">
+    
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header modal-header-danger">
+                        <button type="button" class="close" data-dismiss="modal"></button>
+                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Manage an MQ batch</h1>
+                    </div>
+                    <div class="modal-body">
+                        <p>Please select an operation to be performed:
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button id="btn_submit_batch" style="margin-right: 10px;" class="btn btn-primary pull-right" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Submit this batch</button>
+                        <button id="btn_cancel_batch" style="margin-right: 10px;" class="btn btn-danger pull-right" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel this batch</button>                        
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div id="tableBatches"></div>
+
+      </html>
+    </panel>
+  </row>
+</form>

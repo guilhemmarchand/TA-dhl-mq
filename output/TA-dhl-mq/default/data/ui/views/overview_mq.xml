@@ -7,7 +7,7 @@
 		<refreshType>delay</refreshType>
 	</search>
 	<search id="baseSearchLogs" depends="$showMain1$">
-		<query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* "message publication success" OR "failure in message publication" OR "MQ message publish permanent failure"
+		<query>(index="_internal" OR index="cim_modactions") sourcetype="mq:actions:mq_publish_message:relay" signature=* "message publication success" OR "failure in message publication" OR "permanent failure"
 | stats count by status</query>
 		<earliest>$timerange.earliest$</earliest>
 		<latest>$timerange.latest$</latest>
@@ -153,7 +153,7 @@
 		<panel>
 			<single>
 				<search depends="$showMain1$">
-					<query>| inputlookup mq_publish_backlog where validation_required=1 | stats dc(batch_uuid) as dcount</query>
+					<query>| inputlookup mq_publish_backlog where validation_required=1 | where status!="canceled" | stats dc(batch_uuid) as dcount</query>
 					<refresh>30s</refresh>
 					<refreshType>delay</refreshType>
 				</search>
@@ -354,12 +354,12 @@
 			<input type="dropdown" token="status" searchWhenChanged="true">
 				<label>Publication status</label>
 				<choice value="&quot;message publication success&quot;">Successes</choice>
-				<choice value="&quot;failure in message publication&quot; OR &quot;MQ message publish permanent failure&quot;">All failures</choice>
+				<choice value="&quot;failure in message publication&quot; OR &quot;permanent failure&quot;">All failures</choice>
 				<choice value="&quot;failure in message publication&quot;">Temporary failures</choice>
-				<choice value="&quot;MQ message publish permanent failure&quot;">Permanent failures</choice>
-				<choice value="&quot;message publication success&quot; OR &quot;failure in message publication&quot; OR &quot;MQ message publish permanent failure&quot;">All statuses</choice>
-				<default>&quot;message publication success&quot; OR &quot;failure in message publication&quot; OR &quot;MQ message publish permanent failure&quot;</default>
-				<initialValue>&quot;message publication success&quot; OR &quot;failure in message publication&quot; OR &quot;MQ message publish permanent failure&quot;</initialValue>
+				<choice value="&quot;permanent failure&quot;">Permanent failures</choice>
+				<choice value="&quot;message publication success&quot; OR &quot;failure in message publication&quot; OR &quot;permanent failure&quot;">All statuses</choice>
+				<default>&quot;message publication success&quot; OR &quot;failure in message publication&quot; OR &quot;permanent failure&quot;</default>
+				<initialValue>&quot;message publication success&quot; OR &quot;failure in message publication&quot; OR &quot;permanent failure&quot;</initialValue>
 			</input>
 		</panel>
 	</row>
@@ -470,7 +470,7 @@
 				<search depends="$showTable$ $showMain1$">
 					<query>(index="_internal" OR index="cim_modactions") signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$
 | table _time, host, status, appname, region, queue_manager, queue, user, signature
-| eval status=if(status="success",  "✅ " . status, "⭕ " . status)
+| eval status=if(status="success",  "✅" . status, "⭕" . status)
 | sort - limit=0 _time</query>
 					<earliest>$timerange.earliest$</earliest>
 					<latest>$timerange.latest$</latest>

@@ -74,15 +74,15 @@ class GetMqReplay(GeneratingCommand):
             if str(mqpassthrough) == 'enabled':            
                 # optimization: to avoid Splunk using resources cycles, restrict to successful or canceled records depending on the eviction policy
                 if str(kvstore_eviction) == 'delete':
-                    search = str(search) + " where (status=\"success\" OR status=\"canceled\")"
+                    search = str(search) + " where (status=\"success\" OR status=\"canceled\" OR status=\"permanent_failure\")"
                 else:
-                    search = str(search) + " where (status=\"success\" OR status=\"canceled\")" + '| eval record_age=now()-ctime | eval retention=' + str(kvstore_retention) + '*3600 | where record_age>retention'
+                    search = str(search) + " where (status=\"success\" OR status=\"canceled\" OR status=\"permanent_failure\")" + '| eval record_age=now()-ctime | eval retention=' + str(kvstore_retention) + '*3600 | where record_age>retention'
 
             elif kvstore_search_filters:
-                search = str(search) + " where (status!=\"success\") | where (validation_required=0) AND ( (multiline=0 AND no_attempts>0) OR (multiline=1) ) | search " + str(kvstore_search_filters)
+                search = str(search) + " where (status!=\"success\" AND status!=\"canceled\" AND status!=\"permanent_failure\") | where (validation_required=0) AND ( (multiline=0 AND no_attempts>0) OR (multiline=1) ) | search " + str(kvstore_search_filters)
 
             # logging
-            # self.logger.fatal(str(search))
+            self.logger.fatal(str(search))
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 

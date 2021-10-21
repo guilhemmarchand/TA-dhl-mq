@@ -1,6 +1,7 @@
 <nav color="#708794">
 	<view name="overview_mq" default="true" />
 	<view name="manage_pending_batches" />	
+	<view name="manage_batches" />
     <view name="configuration" />
 	<a href="search?q=%7C%20inputlookup%20mq_publish_backlog%20%7C%20eval%20key%3D_key">MQ KVstore collection</a>
 	<collection label="Logging reports">
