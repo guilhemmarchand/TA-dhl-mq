@@ -1,12 +1,15 @@
 <form theme="dark" stylesheet="manage_batch_v100.css" script="manage_batch_v100.js">
-  <label>Manage batches (dev in progress)</label>
+  <label>MQ Manage Batches</label>
   <search id="baseSingle">
-    <query>| inputlookup mq_publish_backlog | eval key=_key
-| stats min(ctime) as ctime, max(mtime) as mtime, values(user) as submitter, values(appname) as appname, values(manager) as manager, values(queue) as queue, values(region) as region, count by status, batch_uuid</query>
+    <query>| inputlookup mq_publish_backlog | eval key=_key | search status="$tk_showall$"
+| stats min(ctime) as ctime, max(mtime) as mtime, values(user) as submitter, values(appname) as appname, values(manager) as manager, values(queue) as queue, values(region) as region, max(validation_required) as validation_required, count by status, batch_uuid</query>
     <earliest>-5m</earliest>
     <latest>now</latest>
   </search>
   <fieldset submitButton="false"></fieldset>
+  <init>
+    <set token="tk_showall">*</set>
+  </init>
   <row>
     <panel>
       <single>
@@ -17,21 +20,42 @@
         <option name="drilldown">all</option>
         <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
         <option name="rangeValues">[0]</option>
-        <option name="underLabel">NUMBER OF BATCHES IN THE COLLECTION</option>
+        <option name="underLabel">BATCHES IN THE COLLECTION</option>
         <option name="useColors">1</option>
       </single>
     </panel>
     <panel>
       <single>
         <search base="baseSingle">
-          <query>stats count(eval(status=="pending")) as count</query>
+          <query>stats count(eval(status=="pending" AND validation_required=0)) as count</query>
         </search>
         <option name="colorMode">block</option>
         <option name="drilldown">all</option>
         <option name="rangeColors">["0x006d9c","0xf8be34"]</option>
         <option name="rangeValues">[0]</option>
-        <option name="underLabel">NUMBER OF PENDING BATCHES</option>
+        <option name="underLabel">BATCHES PENDING VALIDATION</option>
         <option name="useColors">1</option>
+        <drilldown>
+          <set token="form.status">pending</set>
+          <set token="form.validation_required">0</set>
+        </drilldown>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="baseSingle">
+          <query>stats count(eval(status=="pending" AND validation_required=1)) as count</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="rangeColors">["0x006d9c","0xf8be34"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">BATCHES PENDING PROCESSING</option>
+        <option name="useColors">1</option>
+        <drilldown>
+          <set token="form.status">pending</set>
+          <set token="form.validation_required">1</set>
+        </drilldown>
       </single>
     </panel>
     <panel>
@@ -43,8 +67,11 @@
         <option name="drilldown">all</option>
         <option name="rangeColors">["0x006d9c","0x53a051"]</option>
         <option name="rangeValues">[0]</option>
-        <option name="underLabel">NUMBER OF SUCCESSFULLY PROCEEDED BATCHES</option>
+        <option name="underLabel">SUCCESSFULLY PROCEEDED BATCHES</option>
         <option name="useColors">1</option>
+        <drilldown>
+          <set token="form.status">success</set>
+        </drilldown>
       </single>
     </panel>
     <panel>
@@ -56,8 +83,11 @@
         <option name="drilldown">all</option>
         <option name="rangeColors">["0x006d9c","0xf1813f"]</option>
         <option name="rangeValues">[0]</option>
-        <option name="underLabel">NUMBER OF BATCHES IN TEMPORARY FAILURE</option>
+        <option name="underLabel">BATCHES IN TEMPORARY FAILURE</option>
         <option name="useColors">1</option>
+        <drilldown>
+          <set token="form.status">temporary_failure</set>
+        </drilldown>
       </single>
     </panel>
     <panel>
@@ -69,8 +99,11 @@
         <option name="drilldown">all</option>
         <option name="rangeColors">["0x006d9c","0xdc4e41"]</option>
         <option name="rangeValues">[0]</option>
-        <option name="underLabel">NUMBER OF BATCHES IN PERMANENT FAILURE</option>
+        <option name="underLabel">BATCHES IN PERMANENT FAILURE</option>
         <option name="useColors">1</option>
+        <drilldown>
+          <set token="form.status">permanent_failure</set>
+        </drilldown>
       </single>
     </panel>
   </row>
@@ -101,6 +134,15 @@
         <valuePrefix>status="</valuePrefix>
         <valueSuffix>"</valueSuffix>
         <delimiter> OR </delimiter>
+      </input>
+      <input type="dropdown" token="validation_required" searchWhenChanged="true" depends="$hiddenInput$">
+        <label>Pending validation:</label>
+        <choice value="*">Any</choice>
+        <choice value="1">True</choice>
+        <choice value="0">False</choice>
+        <prefix>validation_required=</prefix>
+        <default>*</default>
+        <initialValue>*</initialValue>
       </input>
       <input type="multiselect" token="submitter" searchWhenChanged="true">
         <label>submitter:</label>
@@ -175,7 +217,7 @@
       <html>
 
         <!-- successful tenant deletion -->
-        <div class="modal fade" id="modal_manage_batch" role="dialog">
+        <div class="modal custom-modal-50 fade" id="modal_manage_batch" role="dialog">
             <div class="modal-dialog">
     
                 <!-- Modal content-->
@@ -185,8 +227,20 @@
                         <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Manage an MQ batch</h1>
                     </div>
                     <div class="modal-body">
-                        <p>Please select an operation to be performed:
-                        </p>
+
+                        <div class="custom-textarea">
+                            <h1>Please select an operation to be performed, and provide with a comment for this operation:</h1>                            
+                            <form>                          
+                              <p>
+                                  <label></label>
+                                  <textarea
+                                          id = "input_comment"
+                                          rows = "6"
+                                          cols = "160" style="width: 700px;">provide a comment for this operation</textarea>
+                              </p>
+                            </form>
+                        </div>
+                        
                     </div>
 
                     <div class="modal-footer">
@@ -194,6 +248,55 @@
                         <button id="btn_cancel_batch" style="margin-right: 10px;" class="btn btn-danger pull-right" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel this batch</button>                        
                     </div>
 
+                </div>
+            </div>
+        </div>
+
+        <!-- Error or failure during the operation -->
+        <div class="modal fade" id="modal_generic_error" role="dialog">
+            <div class="modal-dialog">
+    
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header modal-header-danger">
+                        <button type="button" class="close" data-dismiss="modal"></button>
+                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Oops!</h1>
+                    </div>
+                    <div class="modal-body">
+                        <p>Sorry but it looks like an error occurred during the operation.<br />
+                            <b>You might not have the relevant permissions, or an unexpected failure was encountered.</b><br />
+                            <b>The server returned the following error message:</b>
+                        </p>
+                        <div class="modal-error-message" style="margin: 10px 0; margin-left: 10px; margin-right: 10px; padding: 10px; border-radius: 3px 3px 3px 3px; color: #D8000C; background-color: #FF6E6E;">
+                            <p>error return message</p>
+                        </div>
+                    </div>
+    
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-default pull-right" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- successful operation -->
+        <div class="modal fade" id="modal_generic_success" role="dialog">
+            <div class="modal-dialog">
+    
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header modal-header-danger">
+                        <button type="button" class="close" data-dismiss="modal"></button>
+                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Success</h1>
+                    </div>
+                    <div class="modal-body">
+                        <p>The operation was successfully requested, it will take some minutes to be performed and taken into account.
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary pull-right" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Ok</button>
+                    </div>
                 </div>
             </div>
         </div>

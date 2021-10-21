@@ -175,7 +175,7 @@
 				<option name="useColors">1</option>
 				<option name="useThousandSeparators">1</option>
 				<drilldown>
-					<link target="_blank">/app/TA-dhl-mq/manage_pending_batches</link>
+					<link target="_blank">/app/TA-dhl-mq/manage_batches?form.validation_required=1</link>
 				</drilldown>
 			</single>
 		</panel>

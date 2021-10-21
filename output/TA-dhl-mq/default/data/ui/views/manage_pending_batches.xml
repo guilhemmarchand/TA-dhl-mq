@@ -102,6 +102,11 @@
             </div>
           </div>
       </html>
+      <input type="text" token="comment" searchWhenChanged="true">
+        <label>comment</label>
+        <default>provide a comment for this operation</default>
+        <initialValue>provide a comment for this operation</initialValue>
+      </input>
     </panel>
   </row>
 
@@ -110,7 +115,7 @@
       <title>Activation result:</title>
       <table>
         <search depends="$validatebatch$ $target_batch_uuid$">
-          <query>| managebatch batch_uuid="$target_batch_uuid$"
+          <query>| managebatch batch_uuid="$target_batch_uuid$" action="submit" comment="$comment$"
 | table action, batch_uuid, region, appname, validation_required, count, manager, queue
 | eval action=case(action="success", action . " ✅", action="*_failure", action . " ⭕")</query>
         </search>
@@ -123,10 +128,9 @@
       <title>Cancel result:</title>
       <table>
         <search depends="$cancelbatch$ $target_batch_uuid$">
-          <query>| inputlookup mq_publish_backlog where (status="pending" AND batch_uuid="$target_batch_uuid$") | eval key=_key
-| eval status="canceled"
-| outputlookup append=t key_field=key mq_publish_backlog
-| stats values(status) as status, values(batch_uuid) as batch_uuid
+          <query>| managebatch batch_uuid="$target_batch_uuid$" action="cancel" comment="$comment$"
+| table action, batch_uuid, region, appname, validation_required, count, manager, queue
+| eval action=case(action="success", action . " ✅", action="*_failure", action . " ⭕")
 </query>
         </search>
       </table>
