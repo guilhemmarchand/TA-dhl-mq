@@ -447,6 +447,14 @@
                     "defaultValue": "$result.validation_required$",
                     "required": true,
                     "help": "the validation_required value, example $result.validation_required$"
+                },
+                {
+                    "type": "text",
+                    "label": "comment",
+                    "field": "comment",
+                    "defaultValue": "$result.comment$",
+                    "required": true,
+                    "help": "the comment value, example $result.comment$"
                 }
             ]
         }
@@ -454,7 +462,7 @@
     "meta": {
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0R34cf0ea",
+        "version": "0.0.0R15d8ffe",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.3"
     }

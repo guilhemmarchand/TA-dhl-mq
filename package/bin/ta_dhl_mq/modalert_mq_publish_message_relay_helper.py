@@ -247,6 +247,10 @@ def process_event(helper, *args, **kwargs):
         validation_required = helper.get_param("validation_required")
         helper.log_debug("validation_required={}".format(validation_required))
 
+        # Get comment
+        comment = helper.get_param("comment")
+        helper.log_debug("comment={}".format(comment))
+
         # Set record_url
         record_url = str(kv_url) + str(key)
 
@@ -411,6 +415,7 @@ def process_event(helper, *args, **kwargs):
                                 + '", "multiline": "' + str(multiline) \
                                 + '", "batch_uuid": "' + str(batch_uuid) \
                                 + '", "validation_required": "' + str(validation_required) \
+                                + '", "comment": "' + str(comment) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                         # update the record
@@ -454,6 +459,7 @@ def process_event(helper, *args, **kwargs):
                                         + '", "multiline": "' + str(multiline) \
                                         + '", "batch_uuid": "' + str(batch_uuid) \
                                         + '", "validation_required": "' + str(validation_required) \
+                                        + '", "comment": "' + str(comment) \
                                         + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                                 # update the record
@@ -484,6 +490,7 @@ def process_event(helper, *args, **kwargs):
                                     + '", "multiline": "' + str(multiline) \
                                     + '", "batch_uuid": "' + str(batch_uuid) \
                                     + '", "validation_required": "' + str(validation_required) \
+                                    + '", "comment": "' + str(comment) \
                                     + '", "message": "' + str(checkstrforjson(message)) + '"}'
                             response = requests.post(record_url, headers=headers, data=record,
                                                     verify=False)
@@ -528,6 +535,7 @@ def process_event(helper, *args, **kwargs):
                                 + '", "multiline": "' + str(multiline) \
                                 + '", "batch_uuid": "' + str(batch_uuid) \
                                 + '", "validation_required": "' + str(validation_required) \
+                                + '", "comment": "' + str(comment) \
                                 + '", "message": "' + str(checkstrforjson(message)) + '"}'
 
                         # update the record
