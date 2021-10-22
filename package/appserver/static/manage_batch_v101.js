@@ -86,7 +86,7 @@ require([
       pageSize: "20",
       wrap: true,
       fields:
-        "status_batch, batch_uuid, ctime, mtime, submitter, appname, manager, queue, region, count, last_error",
+        "status_batch, batch_uuid, ctime, mtime, submitter, appname, manager, queue, region, comment, count, last_error",
       el: $("#tableBatches"),
     },
     {

@@ -91,7 +91,7 @@ class ManagePendingBatch(GeneratingCommand):
             # comment
             comment = str(self.comment)
             if comment == "provide a comment for this operation":
-                comment = "The submitter did not provide with a comment for this operation"
+                comment = "The approver did not provide with a comment for this operation"
 
             # depending on the action
             if self.action == 'submit':
@@ -99,7 +99,7 @@ class ManagePendingBatch(GeneratingCommand):
                 # Define and run a Splunk search
                 search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
                     + " | eval key=_key | eval validation_required=0, mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
-                    + " | stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue by batch_uuid" \
+                    + " | stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
                     + " | eval action=if(count>0 AND validation_required=0, \"success\", \"failure\") | fields action, *"
                 output_mode = "csv"
                 exec_mode = "oneshot"
@@ -118,14 +118,16 @@ class ManagePendingBatch(GeneratingCommand):
                         + '\", count=\"' + str(row['count']) \
                         + '\", manager=\"' + str(row['manager']) \
                         + '\", queue=\"' + str(row['queue']) \
+                        + '\", submitter_comment=\"' + str(row['submitter_comment']) \
                         + '\", batch_uuid=\"' + str(row['batch_uuid']) \
                         + '\", region=\"' + str(row['region']) \
                         + '\", validation_required=\"' + str(row['validation_required']) \
-                        + '\", user=\"' + str(user) + '\"'
-                    outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", comment=\"" + str(comment) + "\", action_performed=\"" + str(self.action) + "\"\n")
+                        + '\", submitter=\"' + str(row['submitter']) + '\"' \
+                        + '\", approver=\"' + str(user) + '\"'
+                    outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
                     outputlog.close()
 
-                    yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
+                    yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'submitter': str(row['submitter']), 'approver': str(user), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
 
                     # store a new record in the audit KV for reporting purposes
                     try:
@@ -142,7 +144,8 @@ class ManagePendingBatch(GeneratingCommand):
                         # Insert the record
                         collection.data.insert(json.dumps({                        
                             "ctime": str(int(round(time.time() * 1000))),
-                            "submitter": str(user),
+                            "submitter": str(row['submitter']),
+                            "approver": str(user),
                             "appname": str(row['appname']),                                
                             "count": str(row['count']),
                             "manager": str(row['manager']),
@@ -150,7 +153,8 @@ class ManagePendingBatch(GeneratingCommand):
                             "batch_uuid": str(row['batch_uuid']),
                             "region": str(row['region']),
                             "action": str(self.action),
-                            "comment": str(comment)
+                            "submitter_comment": str(row['submitter_comment']),
+                            "approver_comment": str(comment)
                             }))
 
                     except Exception as e:
@@ -161,7 +165,7 @@ class ManagePendingBatch(GeneratingCommand):
                 # Define and run a Splunk search
                 search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
                     + " | eval key=_key | eval validation_required=0, status=\"canceled\", mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
-                    + " | stats values(status) as status, values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue by batch_uuid" \
+                    + " | stats values(status) as status, values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
                     + " | eval action=if(count>0 AND validation_required=0 AND status=\"canceled\", \"success\", \"failure\") | fields action, *"
                 #self.logger.fatal('search: ' + str(search))
                 output_mode = "csv"
@@ -181,14 +185,16 @@ class ManagePendingBatch(GeneratingCommand):
                         + '\", count=\"' + str(row['count']) \
                         + '\", manager=\"' + str(row['manager']) \
                         + '\", queue=\"' + str(row['queue']) \
+                        + '\", submitter_comment=\"' + str(row['submitter_comment']) \
                         + '\", batch_uuid=\"' + str(row['batch_uuid']) \
                         + '\", region=\"' + str(row['region']) \
                         + '\", validation_required=\"' + str(row['validation_required']) \
-                        + '\", user=\"' + str(user) + '\"'
-                    outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", comment=\"" + str(comment) + "\", action_performed=\"" + str(self.action) + "\"\n")
+                        + '\", submitter=\"' + str(row['submitter']) + '\"' \
+                        + '\", approver=\"' + str(user) + '\"'
+                    outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
                     outputlog.close()
 
-                    yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
+                    yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'submitter': str(row['submitter']), 'approver': str(user), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
 
                     # store a new record in the audit KV for reporting purposes
                     try:
@@ -205,7 +211,8 @@ class ManagePendingBatch(GeneratingCommand):
                         # Insert the record
                         collection.data.insert(json.dumps({                        
                             "ctime": str(int(round(time.time() * 1000))),
-                            "submitter": str(user),
+                            "submitter": str(row['submitter']),
+                            "approver": str(user),
                             "appname": str(row['appname']),                                
                             "count": str(row['count']),
                             "manager": str(row['manager']),
@@ -213,7 +220,8 @@ class ManagePendingBatch(GeneratingCommand):
                             "batch_uuid": str(row['batch_uuid']),
                             "region": str(row['region']),
                             "action": str(self.action),
-                            "comment": str(comment)
+                            "submitter_comment": str(row['submitter_comment']),
+                            "approver_comment": str(comment)
                             }))
 
                     except Exception as e:

@@ -82,6 +82,12 @@ class PutMqRelay(StreamingCommand):
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
+    comment = Option(
+        doc='''
+        **Syntax:** **comment=****
+        **Description:** comment message for auditing purposes.''',
+        require=True)
+
 
     def checkstr(self, i):
 
@@ -153,6 +159,9 @@ class PutMqRelay(StreamingCommand):
             validation_required = 1
         elif self.validation_required == 'False':
             validation_required = 0
+
+        # comment
+        comment = str(self.comment)
 
         # generate a list to store all batch_uuid
         batch_uuid_list = []
@@ -241,7 +250,8 @@ class PutMqRelay(StreamingCommand):
                             "message": str(self.checkstr(message)),
                             "multiline": str(multiline),
                             "batch_uuid": str(batch_uuid),
-                            "validation_required": str(validation_required)
+                            "validation_required": str(validation_required),
+                            "comment": str(comment)
                             }
 
                 records_list.append(record)

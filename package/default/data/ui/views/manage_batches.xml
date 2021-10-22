@@ -31,7 +31,7 @@
     <panel>
       <single>
         <search base="baseSingle">
-          <query>stats count(eval(status=="pending" AND validation_required=0)) as count</query>
+          <query>stats count(eval(status=="pending" AND validation_required=1)) as count</query>
         </search>
         <option name="colorMode">block</option>
         <option name="drilldown">all</option>
@@ -41,14 +41,14 @@
         <option name="useColors">1</option>
         <drilldown>
           <set token="form.status">pending</set>
-          <set token="form.validation_required">0</set>
+          <set token="form.validation_required">1</set>
         </drilldown>
       </single>
     </panel>
     <panel>
       <single>
         <search base="baseSingle">
-          <query>stats count(eval(status=="pending" AND validation_required=1)) as count</query>
+          <query>stats count(eval(status=="pending" AND validation_required=0)) as count</query>
         </search>
         <option name="colorMode">block</option>
         <option name="drilldown">all</option>
@@ -58,7 +58,7 @@
         <option name="useColors">1</option>
         <drilldown>
           <set token="form.status">pending</set>
-          <set token="form.validation_required">1</set>
+          <set token="form.validation_required">0</set>
         </drilldown>
       </single>
     </panel>
