@@ -100,6 +100,13 @@
 				<option name="unitPosition">after</option>
 				<option name="useColors">1</option>
 				<option name="useThousandSeparators">1</option>
+				<drilldown>
+					<link target="_blank">
+					<![CDATA[
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog | eval key=_key | sort - limit=0 ctime | `format_time`
+					]]>
+					</link>
+				</drilldown>
 			</single>
 		</panel>
 		<panel>
@@ -124,6 +131,13 @@
 				<option name="unitPosition">after</option>
 				<option name="useColors">1</option>
 				<option name="useThousandSeparators">1</option>
+				<drilldown>
+					<link target="_blank">
+					<![CDATA[
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="success" | eval key=_key | sort - limit=0 ctime | `format_time`
+					]]>
+					</link>
+				</drilldown>
 			</single>
 		</panel>
 		<panel>
@@ -148,6 +162,13 @@
 				<option name="unitPosition">after</option>
 				<option name="useColors">1</option>
 				<option name="useThousandSeparators">1</option>
+				<drilldown>
+					<link target="_blank">
+					<![CDATA[
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="pending" | eval key=_key | sort - limit=0 ctime | `format_time`
+					]]>
+					</link>
+				</drilldown>
 			</single>
 		</panel>
 		<panel>
@@ -201,6 +222,13 @@
 				<option name="unitPosition">after</option>
 				<option name="useColors">1</option>
 				<option name="useThousandSeparators">1</option>
+				<drilldown>
+					<link target="_blank">
+					<![CDATA[
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="temporary_failure" | eval key=_key | sort - limit=0 ctime | `format_time`
+					]]>
+					</link>
+				</drilldown>
 			</single>
 		</panel>
 		<panel>
@@ -225,6 +253,13 @@
 				<option name="unitPosition">after</option>
 				<option name="useColors">1</option>
 				<option name="useThousandSeparators">1</option>
+				<drilldown>
+					<link target="_blank">
+					<![CDATA[
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="permanent_failure" | eval key=_key | sort - limit=0 ctime | `format_time`
+					]]>
+					</link>
+				</drilldown>
 			</single>
 		</panel>
 	</row>
