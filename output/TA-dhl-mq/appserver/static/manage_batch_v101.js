@@ -102,32 +102,49 @@ require([
     // set tokens
     defaultTokenModel.set("tk_batch_uuid", e.data["row.batch_uuid"]);
     defaultTokenModel.set("tk_status", e.data["row.status"]);
+    defaultTokenModel.set(
+      "tk_validation_required",
+      e.data["row.validation_required"]
+    );
     defaultTokenModel.set("tk_submitter", e.data["row.submitter"]);
     var tk_batch_uuid = e.data["row.batch_uuid"];
     var tk_status = e.data["row.status"];
     var tk_submitter = e.data["row.submitter"];
+    var tk_validation_required = e.data["row.validation_required"];
 
     // dynamically set button states
-    if (tk_status == "pending") {
+    if (tk_status == "pending" && tk_validation_required == 1) {
       $("#btn_submit_batch").prop("disabled", false);
       $("#btn_cancel_batch").prop("disabled", false);
-    } else if (
-      tk_status == "success" ||
-      tk_status == "canceled" ||
-      tk_status == "permanent_failure"
-    ) {
+      // show modal
+      $("#modal_manage_batch").modal();
+    } else if (tk_status == "pending" && tk_validation_required == 0) {
       $("#btn_submit_batch").prop("disabled", true);
-      $("#btn_cancel_batch").prop("disabled", true);
+      $("#btn_cancel_batch").prop("disabled", false);
+      // show modal
+      $("#modal_manage_batch").modal();
+    } else if (tk_status == "success") {
+      // show modal
+      $("#modal_procedded_successful").modal();
+    } else if (tk_status == "canceled") {
+      // show modal
+      $("#modal_batch_canceled").modal();
+    } else if (tk_status == "permanent_failure") {
+      // show modal
+      $("#modal_batch_permanent_failure").modal();
     } else if (tk_status == "temporary_failure") {
       $("#btn_submit_batch").prop("disabled", true);
       $("#btn_cancel_batch").prop("disabled", false);
-    } else {
+      // show modal
+      $("#modal_manage_batch").modal();
+    }
+    // something we've missed?
+    else {
       $("#btn_submit_batch").prop("disabled", true);
       $("#btn_cancel_batch").prop("disabled", true);
+      // show modal
+      $("#modal_manage_batch").modal();
     }
-
-    // show modal
-    $("#modal_manage_batch").modal();
   });
 
   //
@@ -157,6 +174,12 @@ require([
     var tk_batch_uuid = defaultTokenModel.get("tk_batch_uuid");
     var tk_status = defaultTokenModel.get("tk_status");
     var tk_submitter = defaultTokenModel.get("tk_submitter");
+
+    // spinner
+    $("#cssloader").remove();
+    $("body").append(
+      '<div id="cssloader" class="loader loader-default is-active" data-text="Loading..."></div>'
+    );
 
     // Create the service
     var service = mvc.createService({
@@ -193,6 +216,7 @@ require([
           errorStr = JSON.stringify(err.data.messages);
         }
         // show error modal
+        $("#cssloader").remove();
         $("#modal_generic_error").find(".modal-error-message p").text(errorStr);
         $("#modal_generic_error").modal();
       } else {
@@ -221,6 +245,7 @@ require([
 
                   // Identify the operation result
                   if (jobResult.includes("success")) {
+                    $("#cssloader").remove();
                     $("#modal_generic_success").modal();
                     // refresh relevant searches
                     searchBatches.startSearch();
@@ -231,6 +256,7 @@ require([
                     setToken("form.status", "*");
                     setToken("form.validation_required", "*");
                   } else {
+                    $("#cssloader").remove();
                     $("#modal_generic_error")
                       .find(".modal-error-message p")
                       .text(value);
@@ -255,6 +281,7 @@ require([
               ) {
                 errorStr = JSON.stringify(properties._properties.messages);
               }
+              $("#cssloader").remove();
               $("#modal_generic_error")
                 .find(".modal-error-message p")
                 .text(errorStr);
@@ -262,6 +289,7 @@ require([
             },
             error: function (err) {
               done(err);
+              $("#cssloader").remove();
               $("#modal_update_collection_failure_flush").modal();
             },
           }
@@ -286,6 +314,12 @@ require([
     var service = mvc.createService({
       owner: "nobody",
     });
+
+    // spinner
+    $("#cssloader").remove();
+    $("body").append(
+      '<div id="cssloader" class="loader loader-default is-active" data-text="Loading..."></div>'
+    );
 
     // Define the query
     var searchQuery =
@@ -346,6 +380,7 @@ require([
 
                   // Identify the operation result
                   if (jobResult.includes("success")) {
+                    $("#cssloader").remove();
                     $("#modal_generic_success").modal();
                     // refresh relevant searches
                     searchBatches.startSearch();
@@ -356,6 +391,7 @@ require([
                     setToken("form.status", "*");
                     setToken("form.validation_required", "*");
                   } else {
+                    $("#cssloader").remove();
                     $("#modal_generic_error")
                       .find(".modal-error-message p")
                       .text(value);
@@ -380,6 +416,7 @@ require([
               ) {
                 errorStr = JSON.stringify(properties._properties.messages);
               }
+              $("#cssloader").remove();
               $("#modal_generic_error")
                 .find(".modal-error-message p")
                 .text(errorStr);
@@ -387,6 +424,7 @@ require([
             },
             error: function (err) {
               done(err);
+              $("#cssloader").remove();
               $("#modal_update_collection_failure_flush").modal();
             },
           }
