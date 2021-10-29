@@ -462,7 +462,7 @@
     "meta": {
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "0.0.0Red225da",
+        "version": "0.0.0Ra36c606",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.3"
     }

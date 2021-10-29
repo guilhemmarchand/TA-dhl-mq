@@ -1,4 +1,4 @@
-<form theme="dark" stylesheet="manage_batch_v100.css,css-loader/css-loader.css" script="manage_batch_v101.js">
+<form version="1.1" theme="dark" stylesheet="manage_batch_v100.css,css-loader/css-loader.css" script="manage_batch_v101.js">
   <label>MQ Manage Batches</label>
   <search id="baseSingle">
     <query>| inputlookup mq_publish_backlog | eval key=_key | search status="$tk_showall$"
