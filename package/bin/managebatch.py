@@ -57,6 +57,8 @@ class ManagePendingBatch(GeneratingCommand):
             # Get the current user        
             user = self._metadata.searchinfo.username
 
+            self.logger.fatal(self._metadata.searchinfo)
+
             # Get splunkd port
             entity = splunk.entity.getEntity('/server', 'settings',
                                                 namespace='TA-dhl-mq', sessionKey=session_key, owner='-')

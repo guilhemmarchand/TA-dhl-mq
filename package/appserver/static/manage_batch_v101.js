@@ -62,6 +62,24 @@ require([
     submittedTokenModel.unset(name);
   }
 
+  function getUserRoles() {
+    var service = mvc.createService();
+    service.currentUser(function (err, user) {
+      // set a token containing the user roles
+      setToken("tk_user_roles", user.properties().roles);
+    });
+  }
+
+  // call it now
+  getUserRoles();
+
+  // prefill modal with required user role
+  function fillRequiredUserRole(msg) {
+    $("#modal_batch_approver_not_granted")
+      .find(".modal-error-message p")
+      .text(msg);
+  }
+
   // table search
   var searchBatches = new SearchManager(
     {
@@ -111,18 +129,58 @@ require([
     var tk_status = e.data["row.status"];
     var tk_submitter = e.data["row.submitter"];
     var tk_validation_required = e.data["row.validation_required"];
+    var tk_user_roles = getToken("tk_user_roles");
+    var tk_appname = e.data["row.appname"];
 
-    // dynamically set button states
-    if (tk_status == "pending" && tk_validation_required == 1) {
+    // RBAC:
+    // To allow approving, a user must be member of a role as:
+    // mqsubmission_<appName>_approver
+    var rolesArray = tk_user_roles.toString().split(",");
+    var approveRequiredRole =
+      "mqsubmission_" + tk_appname.toLowerCase() + "_approver";
+    if (rolesArray.indexOf(approveRequiredRole) > -1) {
+      canApprove = true;
+    } else {
+      canApprove = false;
+    }
+
+    // rbac message if permissions are insuffiscients
+    var rbac_msg =
+      "" +
+      approveRequiredRole +
+      " is required, you are currently a member of the following roles: " +
+      tk_user_roles.toString() +
+      ".";
+
+    // Enter dynamic conditions
+    if (tk_status == "pending" && tk_validation_required == 1 && canApprove) {
       $("#btn_submit_batch").prop("disabled", false);
       $("#btn_cancel_batch").prop("disabled", false);
       // show modal
       $("#modal_manage_batch").modal();
-    } else if (tk_status == "pending" && tk_validation_required == 0) {
+    } else if (
+      tk_status == "pending" &&
+      tk_validation_required == 1 &&
+      !canApprove
+    ) {
+      fillRequiredUserRole(rbac_msg);
+      $("#modal_batch_approver_not_granted").modal();
+    } else if (
+      tk_status == "pending" &&
+      tk_validation_required == 0 &&
+      canApprove
+    ) {
       $("#btn_submit_batch").prop("disabled", true);
       $("#btn_cancel_batch").prop("disabled", false);
       // show modal
       $("#modal_manage_batch").modal();
+    } else if (
+      tk_status == "pending" &&
+      tk_validation_required == 0 &&
+      !canApprove
+    ) {
+      fillRequiredUserRole(rbac_msg);
+      $("#modal_batch_approver_not_granted").modal();
     } else if (tk_status == "success") {
       // show modal
       $("#modal_procedded_successful").modal();
@@ -132,11 +190,14 @@ require([
     } else if (tk_status == "permanent_failure") {
       // show modal
       $("#modal_batch_permanent_failure").modal();
-    } else if (tk_status == "temporary_failure") {
+    } else if (tk_status == "temporary_failure" && canApprove) {
       $("#btn_submit_batch").prop("disabled", true);
       $("#btn_cancel_batch").prop("disabled", false);
       // show modal
       $("#modal_manage_batch").modal();
+    } else if (tk_status == "temporary_failure" && !canApprove) {
+      fillRequiredUserRole(rbac_msg);
+      $("#modal_batch_approver_not_granted").modal();
     }
     // something we've missed?
     else {
@@ -300,7 +361,7 @@ require([
 
   $("#btn_cancel_batch").click(function () {
     $(this).blur();
-    console.log("Cancel this batch");
+    //console.log("Cancel this batch");
 
     // Get update note
     var tk_comment = document.getElementById("input_comment").value;
@@ -328,7 +389,7 @@ require([
       '" action="cancel" comment="' +
       tk_comment +
       '"';
-    console.log(searchQuery);
+    //console.log(searchQuery);
 
     // Set the search parameters--specify a time range
     var searchParams = {

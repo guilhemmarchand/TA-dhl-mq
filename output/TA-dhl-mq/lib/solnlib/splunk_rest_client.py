@@ -1,7 +1,18 @@
-# Copyright 2016 Splunk, Inc.
-# SPDX-FileCopyrightText: 2020 2020
 #
-# SPDX-License-Identifier: Apache-2.0
+# Copyright 2021 Splunk Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 """
 This module proxy all REST call to splunklib SDK, it handles proxy, certs etc
@@ -12,20 +23,17 @@ call instead of calling splunklib SDK directly in business logic code.
 import logging
 import os
 import traceback
-
-try:
-    from urllib.parse import quote
-except ImportError:
-    from urllib2 import quote
-
 from io import BytesIO
+from urllib.parse import quote
 
-from .net_utils import check_css_params
-from .net_utils import is_valid_hostname
-from .net_utils import is_valid_port
-from .net_utils import is_valid_scheme
-from splunklib import binding
-from splunklib import client
+from splunklib import binding, client
+
+from .net_utils import (
+    check_css_params,
+    is_valid_hostname,
+    is_valid_port,
+    is_valid_scheme,
+)
 from .splunkenv import get_splunkd_access_info
 
 __all__ = ["SplunkRestClient"]

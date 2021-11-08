@@ -374,6 +374,31 @@
             </div>
         </div>
 
+        <!-- RBAC: approving is not granted -->
+        <div class="modal fade" id="modal_batch_approver_not_granted" role="dialog">
+            <div class="modal-dialog">
+    
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header modal-header-danger">
+                        <button type="button" class="close" data-dismiss="modal"></button>
+                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Insuffiscient permissions</h1>
+                    </div>
+                    <div class="modal-body">
+                        <p>You do not have the required permissions to manage this batch, you need to be a member of the following Splunk role:
+                        </p>
+                        <div class="modal-error-message" style="margin: 10px 0; margin-left: 10px; margin-right: 10px; padding: 10px; border-radius: 3px 3px 3px 3px; color: #D8000C; background-color: #FF6E6E;">
+                            <p>error return message</p>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-secondary pull-right" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="tableBatches"></div>
 
       </html>
