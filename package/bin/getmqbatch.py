@@ -249,7 +249,7 @@ class GetMqReplay(GeneratingCommand):
                             import datetime
                             t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
                             for line in inputlog:
-                                outputlog.write(str(t[:-3]) + " INFO file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\"\"\n")
+                                outputlog.write(str(t[:-3]) + " INFO file=getmqbatch.py | customaction - signature=\"message publication success, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\"\n")
                             inputlog.close()
                             outputlog.close()
 
@@ -276,7 +276,7 @@ class GetMqReplay(GeneratingCommand):
                             import datetime
                             t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
                             for line in inputlog:
-                                outputlog.write(str(t[:-3]) + " ERROR file=getmqbatch.py | customaction - signature=\"failure in message publication, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"failure\"\"\n")
+                                outputlog.write(str(t[:-3]) + " ERROR file=getmqbatch.py | customaction - signature=\"failure in message publication, " + str(line.strip()) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"failure\"\n")
                             inputlog.close()
                             outputlog.close()
 

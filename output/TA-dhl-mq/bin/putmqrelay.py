@@ -73,14 +73,15 @@ class PutMqRelay(StreamingCommand):
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
-    validation_required = Option(
-        doc='''
-        **Syntax:** **validation_required=****
-        **Description:** set a boolean flag to allow the batch to be processed, default is False
-        If true, the field validation_required is set to the boolean value 1, the batch will not be processed until it is validate and the value set to 0 in the KVstore.
-        If false, the validation_required field is set to the False boolean value 0 and will be processed as soon as possible.
-        .''',
-        require=False, validate=validators.Match("dedup", r"^(True|False)$"))
+    # Initially, validation_required was optional. It is now mandatory, and left commented for information
+    #validation_required = Option(
+    #    doc='''
+    #    **Syntax:** **validation_required=****
+    #    **Description:** set a boolean flag to allow the batch to be processed, default is False
+    #    If true, the field validation_required is set to the boolean value 1, the batch will not be processed until it is validate and the value set to 0 in the KVstore.
+    #    If false, the validation_required field is set to the False boolean value 0 and will be processed as soon as possible.
+    #    .''',
+    #    require=False, validate=validators.Match("dedup", r"^(True|False)$"))
 
     comment = Option(
         doc='''
@@ -153,12 +154,14 @@ class PutMqRelay(StreamingCommand):
             self.dedup = 'True'
 
         # Set the validation required
-        if not self.validation_required:
-            validation_required = 0
-        elif self.validation_required == 'True':
-            validation_required = 1
-        elif self.validation_required == 'False':
-            validation_required = 0
+        #if not self.validation_required:
+        #    validation_required = 0
+        #elif self.validation_required == 'True':
+        #    validation_required = 1
+        #elif self.validation_required == 'False':
+        #    validation_required = 0
+        # validation_required is now mandatory
+        validation_required = 1
 
         # comment
         comment = str(self.comment)
