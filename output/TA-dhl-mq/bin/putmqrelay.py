@@ -86,7 +86,7 @@ class PutMqRelay(StreamingCommand):
         doc='''
         **Syntax:** **comment=****
         **Description:** comment message for auditing purposes.''',
-        require=True)
+        require=True, validate=validators.Match("comment", r"\w+"))
 
 
     def checkstr(self, i):

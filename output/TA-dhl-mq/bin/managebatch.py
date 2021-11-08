@@ -44,7 +44,7 @@ class ManagePendingBatch(GeneratingCommand):
         doc='''
         **Syntax:** **comment=****
         **Description:** A comment to be provided for auditing purposes, this is mandatory''',
-        require=True)
+        require=True, validate=validators.Match("comment", r"\w+"))
 
 
     def generate(self, **kwargs):
@@ -56,6 +56,19 @@ class ManagePendingBatch(GeneratingCommand):
 
             # Get the current user        
             user = self._metadata.searchinfo.username
+
+            # get the list of roles for the user
+            user_roles = []
+            kwargs = {"sort_key":"realname", "sort_dir":"asc"}
+            users = self.service.users.list(count=-1,**kwargs)
+            for username in users:
+                if user == username.name:
+                    for role in username.role_entities:
+                        user_roles.append(role.name)
+
+            # for debug
+            #for role in user_roles:
+            #    self.logger.fatal("DEBUG: " + str(role))
 
             # Get splunkd port
             entity = splunk.entity.getEntity('/server', 'settings',
@@ -93,144 +106,220 @@ class ManagePendingBatch(GeneratingCommand):
             if comment == "provide a comment for this operation":
                 comment = "The approver did not provide with a comment for this operation"
 
-            # depending on the action
-            if self.action == 'submit':
+            # RBAC: whatever the action the user requests, we need to verify permissions first
+            # For this, get the appname for this batch with additional information
 
-                # Define and run a Splunk search
-                search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
-                    + " | eval key=_key | eval validation_required=0, mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
-                    + " | stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
-                    + " | eval action=if(count>0 AND validation_required=0, \"success\", \"failure\") | fields action, *"
-                output_mode = "csv"
-                exec_mode = "oneshot"
-                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
-                csv_data = response.text
+            # Define and run a Splunk search
+            search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
+                + " | stats first(appname) as appname, first(status) as status, first(validation_required) as validation_required"
+            output_mode = "csv"
+            exec_mode = "oneshot"
+            response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+            csv_data = response.text
 
-                # Use the CSV dict reader
-                readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
+            # Use the CSV dict reader
+            readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
 
-                # For row in CSV, generate the _raw
-                for row in readCSV:
+            # get batch information
+            batch_appname = None
+            batch_status = None
+            batch_validation_required = None
+            
+            for row in readCSV:
+                batch_appname = str(row['appname'])
+                batch_status = str(row['status'])
+                batch_validation_required = str(row['validation_required'])
 
-                    outputlog = open(splunklogfile, "a")
-                    t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
-                    raw_kv_message = 'action=\"' + str(row['action']) \
-                        + '\", count=\"' + str(row['count']) \
-                        + '\", manager=\"' + str(row['manager']) \
-                        + '\", queue=\"' + str(row['queue']) \
-                        + '\", submitter_comment=\"' + str(row['submitter_comment']) \
-                        + '\", batch_uuid=\"' + str(row['batch_uuid']) \
-                        + '\", region=\"' + str(row['region']) \
-                        + '\", validation_required=\"' + str(row['validation_required']) \
-                        + '\", submitter=\"' + str(row['submitter']) + '\"' \
-                        + '\", approver=\"' + str(user) + '\"'
-                    outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
-                    outputlog.close()
+            #self.logger.fatal("DEBUG: batch_appname is " + batch_appname)
+            #self.logger.fatal("DEBUG: batch_status is " + batch_status)
+            #self.logger.fatal("DEBUG: batch_validation_required is " + batch_validation_required)
 
-                    yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'submitter': str(row['submitter']), 'approver': str(user), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
+            # Break here if we didn't get a result
+            if not batch_appname or not batch_status or not batch_validation_required:
+                # yield
+                response = "Error: This batch could not be found in the collection or an exception was encountered (check the job inspector), please verify your input and retry."
+                data = {'_time': time.time(), '_raw': "{\"response\": \"" + str(response) + "\"}"}
+                yield data
+                sys.exit(0)
 
-                    # store a new record in the audit KV for reporting purposes
-                    try:
+            # RBAC: build the required Splunk role
+            role_required = "mqsubmission_" + batch_appname.lower() + "_approver"
 
-                        collection_name = "kv_mq_publish_batch_history"            
-                        service = client.connect(
-                            owner="nobody",
-                            app="TA-dhl-mq",
-                            port=splunkd_port,
-                            token=session_key
-                        )
-                        collection = service.kvstore[collection_name]
+            # If the user is not a member of this role, no action are allowed
+            if not role_required in user_roles:
 
-                        # Insert the record
-                        collection.data.insert(json.dumps({                        
-                            "ctime": str(int(round(time.time() * 1000))),
-                            "submitter": str(row['submitter']),
-                            "approver": str(user),
-                            "appname": str(row['appname']),                                
-                            "count": str(row['count']),
-                            "manager": str(row['manager']),
-                            "queue": str(row['queue']),
-                            "batch_uuid": str(row['batch_uuid']),
-                            "region": str(row['region']),
-                            "action": str(self.action),
-                            "submitter_comment": str(row['submitter_comment']),
-                            "approver_comment": str(comment)
-                            }))
+                # yield
+                response = "Error: You do no have the permission to perform any action on this batch, the role " \
+                    + str(role_required) + " is required, you are a member of the following roles: " \
+                    + ",".join(user_roles) + "."
+                data = {'_time': time.time(), '_raw': "{\"response\": \"" + str(response) + "\"}"}
+                yield data
 
-                    except Exception as e:
-                        self.logger.fatal('Failed to insert a new record in the audit KVstore collection with exception: ' + str(e))
+            else:
 
-            elif self.action == 'cancel':
+                # invalid action requested
+                if not self.action in ("submit", "cancel"):
+                    # yield
+                    response = "Error: invalid action requested, allowed actions are: submit|cancel" + "."
+                    data = {'_time': time.time(), '_raw': "{\"response\": \"" + str(response) + "\"}"}
+                    yield data                
 
-                # Define and run a Splunk search
-                search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
-                    + " | eval key=_key | eval validation_required=0, status=\"canceled\", mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
-                    + " | stats values(status) as status, values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
-                    + " | eval action=if(count>0 AND validation_required=0 AND status=\"canceled\", \"success\", \"failure\") | fields action, *"
-                #self.logger.fatal('search: ' + str(search))
-                output_mode = "csv"
-                exec_mode = "oneshot"
-                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
-                csv_data = response.text
+                # depending on the action
+                elif self.action == 'submit':
 
-                # Use the CSV dict reader
-                readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
+                    if str(batch_status) == "pending" and str(batch_validation_required) == "1":
 
-                # For row in CSV, generate the _raw
-                for row in readCSV:
+                        # Define and run a Splunk search
+                        search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
+                            + " | eval key=_key | eval validation_required=0, mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
+                            + " | stats values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
+                            + " | eval action=if(count>0 AND validation_required=0, \"success\", \"failure\") | fields action, *"
+                        output_mode = "csv"
+                        exec_mode = "oneshot"
+                        response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                        csv_data = response.text
 
-                    outputlog = open(splunklogfile, "a")
-                    t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
-                    raw_kv_message = 'action=\"' + str(row['action']) \
-                        + '\", count=\"' + str(row['count']) \
-                        + '\", manager=\"' + str(row['manager']) \
-                        + '\", queue=\"' + str(row['queue']) \
-                        + '\", submitter_comment=\"' + str(row['submitter_comment']) \
-                        + '\", batch_uuid=\"' + str(row['batch_uuid']) \
-                        + '\", region=\"' + str(row['region']) \
-                        + '\", validation_required=\"' + str(row['validation_required']) \
-                        + '\", submitter=\"' + str(row['submitter']) + '\"' \
-                        + '\", approver=\"' + str(user) + '\"'
-                    outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
-                    outputlog.close()
+                        # Use the CSV dict reader
+                        readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
 
-                    yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'submitter': str(row['submitter']), 'approver': str(user), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
+                        # For row in CSV, generate the _raw
+                        for row in readCSV:
 
-                    # store a new record in the audit KV for reporting purposes
-                    try:
+                            outputlog = open(splunklogfile, "a")
+                            t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                            raw_kv_message = 'action=\"' + str(row['action']) \
+                                + '\", count=\"' + str(row['count']) \
+                                + '\", manager=\"' + str(row['manager']) \
+                                + '\", queue=\"' + str(row['queue']) \
+                                + '\", submitter_comment=\"' + str(row['submitter_comment']) \
+                                + '\", batch_uuid=\"' + str(row['batch_uuid']) \
+                                + '\", region=\"' + str(row['region']) \
+                                + '\", validation_required=\"' + str(row['validation_required']) \
+                                + '\", submitter=\"' + str(row['submitter']) + '\"' \
+                                + '\", approver=\"' + str(user) + '\"'
+                            outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
+                            outputlog.close()
 
-                        collection_name = "kv_mq_publish_batch_history"            
-                        service = client.connect(
-                            owner="nobody",
-                            app="TA-dhl-mq",
-                            port=splunkd_port,
-                            token=session_key
-                        )
-                        collection = service.kvstore[collection_name]
+                            yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'submitter': str(row['submitter']), 'approver': str(user), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
 
-                        # Insert the record
-                        collection.data.insert(json.dumps({                        
-                            "ctime": str(int(round(time.time() * 1000))),
-                            "submitter": str(row['submitter']),
-                            "approver": str(user),
-                            "appname": str(row['appname']),                                
-                            "count": str(row['count']),
-                            "manager": str(row['manager']),
-                            "queue": str(row['queue']),
-                            "batch_uuid": str(row['batch_uuid']),
-                            "region": str(row['region']),
-                            "action": str(self.action),
-                            "submitter_comment": str(row['submitter_comment']),
-                            "approver_comment": str(comment)
-                            }))
+                            # store a new record in the audit KV for reporting purposes
+                            try:
 
-                    except Exception as e:
-                        self.logger.fatal('Failed to insert a new record in the audit KVstore collection with exception: ' + str(e))
+                                collection_name = "kv_mq_publish_batch_history"            
+                                service = client.connect(
+                                    owner="nobody",
+                                    app="TA-dhl-mq",
+                                    port=splunkd_port,
+                                    token=session_key
+                                )
+                                collection = service.kvstore[collection_name]
+
+                                # Insert the record
+                                collection.data.insert(json.dumps({                        
+                                    "ctime": str(int(round(time.time() * 1000))),
+                                    "submitter": str(row['submitter']),
+                                    "approver": str(user),
+                                    "appname": str(row['appname']),                                
+                                    "count": str(row['count']),
+                                    "manager": str(row['manager']),
+                                    "queue": str(row['queue']),
+                                    "batch_uuid": str(row['batch_uuid']),
+                                    "region": str(row['region']),
+                                    "action": str(self.action),
+                                    "submitter_comment": str(row['submitter_comment']),
+                                    "approver_comment": str(comment)
+                                    }))
+
+                            except Exception as e:
+                                self.logger.fatal('Failed to insert a new record in the audit KVstore collection with exception: ' + str(e))
+
+                    else:
+
+                        # yield
+                        response = "Error: invalid action requested, this batch is not pending for approval."
+                        data = {'_time': time.time(), '_raw': "{\"response\": \"" + str(response) + "\"}"}
+                        yield data
+
+                elif self.action == 'cancel':
+
+                    if str(batch_status) == "pending" or str(batch_status) == "temporary_failure":
+
+                        # Define and run a Splunk search
+                        search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
+                            + " | eval key=_key | eval validation_required=0, status=\"canceled\", mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
+                            + " | stats values(status) as status, values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
+                            + " | eval action=if(count>0 AND validation_required=0 AND status=\"canceled\", \"success\", \"failure\") | fields action, *"
+                        #self.logger.fatal('search: ' + str(search))
+                        output_mode = "csv"
+                        exec_mode = "oneshot"
+                        response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                        csv_data = response.text
+
+                        # Use the CSV dict reader
+                        readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
+
+                        # For row in CSV, generate the _raw
+                        for row in readCSV:
+
+                            outputlog = open(splunklogfile, "a")
+                            t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')
+                            raw_kv_message = 'action=\"' + str(row['action']) \
+                                + '\", count=\"' + str(row['count']) \
+                                + '\", manager=\"' + str(row['manager']) \
+                                + '\", queue=\"' + str(row['queue']) \
+                                + '\", submitter_comment=\"' + str(row['submitter_comment']) \
+                                + '\", batch_uuid=\"' + str(row['batch_uuid']) \
+                                + '\", region=\"' + str(row['region']) \
+                                + '\", validation_required=\"' + str(row['validation_required']) \
+                                + '\", submitter=\"' + str(row['submitter']) + '\"' \
+                                + '\", approver=\"' + str(user) + '\"'
+                            outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
+                            outputlog.close()
+
+                            yield {'_time': time.time(), '_raw': str(row), 'action': str(row['action']), 'appname': str(row['appname']), 'batch_uuid': str(row['batch_uuid']), 'count': str(row['count']), 'submitter': str(row['submitter']), 'approver': str(user), 'manager': str(row['manager']), 'queue': str(row['queue']), 'region': str(row['region']), 'validation_required': str(row['validation_required'])}
+
+                            # store a new record in the audit KV for reporting purposes
+                            try:
+
+                                collection_name = "kv_mq_publish_batch_history"            
+                                service = client.connect(
+                                    owner="nobody",
+                                    app="TA-dhl-mq",
+                                    port=splunkd_port,
+                                    token=session_key
+                                )
+                                collection = service.kvstore[collection_name]
+
+                                # Insert the record
+                                collection.data.insert(json.dumps({                        
+                                    "ctime": str(int(round(time.time() * 1000))),
+                                    "submitter": str(row['submitter']),
+                                    "approver": str(user),
+                                    "appname": str(row['appname']),                                
+                                    "count": str(row['count']),
+                                    "manager": str(row['manager']),
+                                    "queue": str(row['queue']),
+                                    "batch_uuid": str(row['batch_uuid']),
+                                    "region": str(row['region']),
+                                    "action": str(self.action),
+                                    "submitter_comment": str(row['submitter_comment']),
+                                    "approver_comment": str(comment)
+                                    }))
+
+                            except Exception as e:
+                                self.logger.fatal('Failed to insert a new record in the audit KVstore collection with exception: ' + str(e))
+
+                    else:
+
+                        # yield
+                        response = "Error: invalid action requested, this batch is not in a stage that can be cancelled, or it has been cancelled already."
+                        data = {'_time': time.time(), '_raw': "{\"response\": \"" + str(response) + "\"}"}
+                        yield data
 
         else:
 
             # yield
-            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error: bad request}"}
+            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error: bad request\"}"}
             yield data
 
 dispatch(ManagePendingBatch, sys.argv, sys.stdin, sys.stdout, __name__)
