@@ -111,7 +111,7 @@ class ManagePendingBatch(GeneratingCommand):
 
             # Define and run a Splunk search
             search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \
-                + " | stats first(appname) as appname, first(status) as status, first(validation_required) as validation_required"
+                + " | stats first(appname) as appname, values(status) as status, first(validation_required) as validation_required | eval status=mvjoin(status, \",\")"
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
@@ -242,7 +242,7 @@ class ManagePendingBatch(GeneratingCommand):
 
                 elif self.action == 'cancel':
 
-                    if str(batch_status) == "pending" or str(batch_status) == "temporary_failure":
+                    if str(batch_status) not in ("success", "canceled"):
 
                         # Define and run a Splunk search
                         search = "| inputlookup mq_publish_backlog where batch_uuid=\"" + str(self.batch_uuid) + "\"" \

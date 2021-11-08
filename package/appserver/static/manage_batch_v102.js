@@ -301,6 +301,8 @@ require([
                     // get the action
                     if (field === "action") {
                       jobResult = value;
+                    } else if (field === "_raw") {
+                      jobResult = value;
                     }
                   }
 
@@ -435,6 +437,8 @@ require([
                     var value = values[j];
                     // get the action
                     if (field === "action") {
+                      jobResult = value;
+                    } else if (field === "_raw") {
                       jobResult = value;
                     }
                   }
