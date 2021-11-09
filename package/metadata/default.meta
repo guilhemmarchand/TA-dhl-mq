@@ -1,7 +1,24 @@
 
 # Application-level permissions
 
+# By default, only the members of the builtin mqsubmission role (and admin) can enter into the application with read privileges
+
 []
 owner = admin
-access = read : [ * ], write : [ admin ]
+access = read : [ mqsubmission ], write : [ admin ]
 export = system
+
+# KVstore collection
+# users members of the builtin mqsubmission role need write access to the KVstore collection
+
+[transforms/mq_publish_backlog]
+access = read : [ admin, mqsubmission ], write : [ admin, mqsubmission ]
+
+[collections/kv_mq_publish_backlog]
+access = read : [ admin, mqsubmission ], write : [ admin, mqsubmission ]
+
+[transforms/mq_publish_batch_history]
+access = read : [ admin, mqsubmission ], write : [ admin, mqsubmission ]
+
+[collections/kv_mq_publish_batch_history]
+access = read : [ admin, mqsubmission ], write : [ admin, mqsubmission ]
