@@ -1,7 +1,7 @@
-<form version="1.1" theme="dark">
+<form script="overview_v100.js" version="1.1" theme="dark">
 	<label>DHL Add-on for IBM MQ - Overview</label>
 	<search id="baseSearch" depends="$showMain1$">
-		<query>| inputlookup mq_publish_backlog | eval key=_key | table key, appname, region, manager, queue, message, no_max_retry, no_attempts, ctime, mtime, user, status
+		<query>| inputlookup mq_publish_backlog | eval key=_key | search ($tk_user_app_searchstring$) | table key, appname, region, manager, queue, message, no_max_retry, no_attempts, ctime, mtime, user, status
 | stats count by status</query>
 		<refresh>30s</refresh>
 		<refreshType>delay</refreshType>
@@ -15,7 +15,7 @@
 		<refreshType>delay</refreshType>
 	</search>
 	<search id="baseSearchDropdown" depends="$showTable$ $showMain1$">
-		<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$
+		<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$ ($tk_user_app_searchstring$)
 | stats count by host, queue_manager, appname, region
 </query>
 		<earliest>$timerange.earliest$</earliest>
@@ -103,7 +103,7 @@
 				<drilldown>
 					<link target="_blank">
 					<![CDATA[
-					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog | eval key=_key | sort - limit=0 ctime | `format_time`
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog | eval key=_key | search ($tk_user_app_searchstring$) | sort - limit=0 ctime | `format_time`
 					]]>
 					</link>
 				</drilldown>
@@ -134,7 +134,7 @@
 				<drilldown>
 					<link target="_blank">
 					<![CDATA[
-					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="success" | eval key=_key | sort - limit=0 ctime | `format_time`
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="success" | eval key=_key | search ($tk_user_app_searchstring$) | sort - limit=0 ctime | `format_time`
 					]]>
 					</link>
 				</drilldown>
@@ -165,7 +165,7 @@
 				<drilldown>
 					<link target="_blank">
 					<![CDATA[
-					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="pending" | eval key=_key | sort - limit=0 ctime | `format_time`
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="pending" | search ($tk_user_app_searchstring$) | eval key=_key | sort - limit=0 ctime | `format_time`
 					]]>
 					</link>
 				</drilldown>
@@ -174,7 +174,7 @@
 		<panel>
 			<single>
 				<search depends="$showMain1$">
-					<query>| inputlookup mq_publish_backlog where validation_required=1 | where status!="canceled" | stats dc(batch_uuid) as dcount</query>
+					<query>| inputlookup mq_publish_backlog where validation_required=1 | search ($tk_user_app_searchstring$) | where status!="canceled" | search ($tk_user_app_searchstring$) | stats dc(batch_uuid) as dcount</query>
 					<refresh>30s</refresh>
 					<refreshType>delay</refreshType>
 				</search>
@@ -225,7 +225,7 @@
 				<drilldown>
 					<link target="_blank">
 					<![CDATA[
-					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="temporary_failure" | eval key=_key | sort - limit=0 ctime | `format_time`
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="temporary_failure" | search ($tk_user_app_searchstring$) | eval key=_key | sort - limit=0 ctime | `format_time`
 					]]>
 					</link>
 				</drilldown>
@@ -256,7 +256,7 @@
 				<drilldown>
 					<link target="_blank">
 					<![CDATA[
-					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="permanent_failure" | eval key=_key | sort - limit=0 ctime | `format_time`
+					/app/TA-dhl-mq/search?q=| inputlookup mq_publish_backlog where status="permanent_failure" | search ($tk_user_app_searchstring$) | eval key=_key | sort - limit=0 ctime | `format_time`
 					]]>
 					</link>
 				</drilldown>
@@ -433,7 +433,7 @@
 		<panel depends="$showChart$">
 			<chart>
 				<search depends="$showChart$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$
+					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ ($tk_user_app_searchstring$)
 | timechart count as success $minspan$ bins=1000 limit=45 by status</query>
 					<earliest>$timerange.earliest$</earliest>
 					<latest>$timerange.latest$</latest>
@@ -503,7 +503,7 @@
 			</input>
 			<table>
 				<search depends="$showTable$ $showMain1$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$
+					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$ ($tk_user_app_searchstring$)
 | table _time, host, status, appname, region, queue_manager, queue, user, signature
 | eval status=if(status="success",  "✅" . status, "⭕" . status)
 | sort - limit=0 _time</query>

@@ -71,7 +71,43 @@ require([
   }
 
   // call it now
-  getUserRoles();
+  // getUserRoles();
+
+  // preset search filter based on user's application perimeters
+  function presetUserFilter() {
+    var service = mvc.createService();
+    service.currentUser(function (err, user) {
+      // set a token containing the user roles
+      var tk_user_roles = user.properties().roles;
+      setToken("tk_user_roles", tk_user_roles);
+
+      // set the list of applications
+      var rolesArray = tk_user_roles.toString().split(",");
+      var appArray = [];
+      var appStringSearch = "";
+      var role;
+      for (role of rolesArray) {
+        // for each role the user is member of, attempt to extract the MQ app name and push to the array
+        if (/mqsubmission_/i.test(role)) {
+          regex_matches = role.match(/mqsubmission_([^\_]+)_\w+/);
+          appName = regex_matches[1];
+          appArray.push(appName);
+        }
+      }
+
+      // if null, the user has access to the app but is not a member of an MQ role, likely admin like, set to all
+      if (appArray.length === 0) {
+        appArray.push("*");
+      }
+
+      // set the root search, and the token
+      appStringSearch = 'appname="' + appArray.join('" OR appname="') + '"';
+      setToken("tk_user_app_searchstring", appStringSearch);
+    });
+  }
+
+  // call it now
+  presetUserFilter();
 
   // prefill modal with required user role
   function fillRequiredUserRole(msg) {
@@ -85,7 +121,7 @@ require([
     {
       id: "searchBatches",
       search:
-        "| `get_table_batches` | search $batch_uuid$ $status$ $submitter$ $appname$ $manager$ $queue$ $region$ $validation_required$ | `format_table_batches`",
+        "| `get_table_batches` | search $tk_user_app_searchstring$ $batch_uuid$ $status$ $submitter$ $appname$ $manager$ $queue$ $region$ $validation_required$ | `format_table_batches`",
       earliest_time: "-5m",
       latest_time: "now",
     },
