@@ -49,23 +49,11 @@ class CleanOrphans(GeneratingCommand):
             # Get conf
             conf_file = "ta_dhl_mq_settings"
             confs = self.service.confs[str(conf_file)]
-            kvstore_instance = None
-            bearer_token = None
             for stanza in confs:
                 if stanza.name == "advanced_configuration":
                     for key, value in stanza.content.items():
                         if key == "mqpassthrough":
                             mqpassthrough = value
-                        if key == "kvstore_instance":
-                            kvstore_instance = value
-                        if key == "bearer_token":
-                            bearer_token = value
-                        if key == "kvstore_search_filters":
-                            kvstore_search_filters = value
-                        if key == "mqclient_bin_path":
-                            mqclient_bin_path = value
-                        if key == "q_bin_path":
-                            q_bin_path = value
 
             # if passthrough, do nothing
             if str(mqpassthrough) == 'enabled':

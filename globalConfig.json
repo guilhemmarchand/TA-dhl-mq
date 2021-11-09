@@ -234,7 +234,8 @@
                                 "display": true
                             },
                             "defaultValue": "",
-                            "required": false
+                            "required": false,
+                            "encrypted": true
                         },
                         {
                             "type": "text",
@@ -462,7 +463,7 @@
     "meta": {
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "1.0.8",
+        "version": "1.0.9",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.3"
     }

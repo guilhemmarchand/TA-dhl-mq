@@ -34,6 +34,46 @@ def delete_record(helper, key, record_url, headers, *args, **kwargs):
         helper.log_debug("Kvstore saving is successful")
 
 
+def get_bearer_token(helper, session_key, **kwargs):
+
+    import splunk
+    import splunk.entity
+    import splunklib.client as client
+    import re
+
+    # Get splunkd port
+    entity = splunk.entity.getEntity('/server', 'settings',
+                                        namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
+    splunkd_port = entity['mgmtHostPort']
+
+    service = client.connect(
+        owner="nobody",
+        app="TA-dhl-mq",
+        port=splunkd_port,
+        token=session_key
+    )
+
+    # Cred store
+    storage_passwords = service.storage_passwords
+
+    # The bearer token is stored in the credential store
+    # However, likely due to the number of chars, the credential.content.get SDK command is unable to return its value in a single operation
+    # As a workaround, we concatenate the different values return to form a complete object, finally we use a regex approach to extract its clear text value
+    credential_realm = '__REST_CREDENTIAL__#TA-dhl-mq#configs/conf-ta_dhl_mq_settings'
+    bearer_token_rawvalue = ""
+
+    for credential in storage_passwords:
+        if credential.content.get('realm') == str(credential_realm):
+            bearer_token_rawvalue = bearer_token_rawvalue + str(credential.content.clear_password)
+
+    # extract a clean json object
+    bearer_token_rawvalue_match = re.search('\{\"bearer_token\":\s*\"(.*)\"\}', bearer_token_rawvalue)
+    if bearer_token_rawvalue_match:
+        bearer_token = bearer_token_rawvalue_match.group(1)
+
+    return bearer_token
+
+
 def update_record(helper, record, record_url, headers, *args, **kwargs):
 
     # imports
@@ -93,8 +133,8 @@ def process_event(helper, *args, **kwargs):
     helper.log_debug("kvstore_instance={}".format(kvstore_instance))
 
     # Get bearer_token
-    bearer_token = helper.get_global_setting("bearer_token")
-    helper.log_debug("bearer_token={}".format(bearer_token))
+    bearer_token = get_bearer_token(helper, session_key)
+    # helper.log_debug("bearer_token={}".format(bearer_token))
 
     # Define the headers and kv_url, use bearer token if instance is not local
     if str(kvstore_instance) != "localhost:8089":

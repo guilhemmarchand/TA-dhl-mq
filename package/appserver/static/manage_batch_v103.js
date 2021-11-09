@@ -62,16 +62,26 @@ require([
     submittedTokenModel.unset(name);
   }
 
-  function getUserRoles() {
-    var service = mvc.createService();
-    service.currentUser(function (err, user) {
-      // set a token containing the user roles
-      setToken("tk_user_roles", user.properties().roles);
+  //
+  // Notify
+  //
+
+  function notify(varCss, varPosition, varHtml, vardelay) {
+    require([
+      "jquery",
+      "/static/app/TA-dhl-mq/notifybar/jquery.notifyBar.js",
+    ], function ($) {
+      //code here
+      jQuery(function () {
+        jQuery.notifyBar({
+          cssClass: varCss,
+          position: varPosition,
+          html: varHtml,
+          delay: vardelay,
+        });
+      });
     });
   }
-
-  // call it now
-  // getUserRoles();
 
   // preset search filter based on user's application perimeters
   function presetUserFilter() {
@@ -84,7 +94,9 @@ require([
       // set the list of applications
       var rolesArray = tk_user_roles.toString().split(",");
       var appArray = [];
+      var appArrayHtml = [];
       var appStringSearch = "";
+      var appStringHtml = "";
       var role;
       for (role of rolesArray) {
         // for each role the user is member of, attempt to extract the MQ app name and push to the array
@@ -92,17 +104,29 @@ require([
           regex_matches = role.match(/mqsubmission_([^\_]+)_\w+/);
           appName = regex_matches[1];
           appArray.push(appName);
+          appArrayHtml.push(appName);
         }
       }
 
       // if null, the user has access to the app but is not a member of an MQ role, likely admin like, set to all
       if (appArray.length === 0) {
         appArray.push("*");
+        appArrayHtml.push("All applications (not a member of any MQ group)");
       }
 
       // set the root search, and the token
       appStringSearch = 'appname="' + appArray.join('" OR appname="') + '"';
+      appStringHtml = "[ " + appArrayHtml.join(", ") + " ]";
       setToken("tk_user_app_searchstring", appStringSearch);
+
+      // Notify
+      notify(
+        "info",
+        "bottom",
+        "We have automatically restricted the content based on your MQ roles membership, for the following application(s): " +
+          appStringHtml,
+        "10"
+      );
     });
   }
 
