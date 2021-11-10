@@ -75,6 +75,16 @@
                             "defaultValue": "SPLUNK.APP.SVRCONN"
                         },
                         {
+                            "type": "text",
+                            "label": "High Avaibility group",
+                            "help": "Enter the identifier for the high availibility group, multiple consumers can be set to consume the same group and one will get elected as the manager.",
+                            "field": "hagroup",
+                            "options": {
+                                "display": true
+                            },
+                            "required": true
+                        },
+                        {
                             "type": "oauth",
                             "field": "oauth",
                             "label": "Not used",
@@ -463,7 +473,7 @@
     "meta": {
         "name": "TA-dhl-mq",
         "restRoot": "ta_dhl_mq",
-        "version": "1.0.9",
+        "version": "1.0.10",
         "displayName": "DHL Add-on for DHL",
         "schemaVersion": "0.0.3"
     }
