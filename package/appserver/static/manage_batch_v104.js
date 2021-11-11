@@ -202,7 +202,6 @@ require([
     // members of the role mqsubmission_superadmin can approve or manage batches for all applications
 
     var rolesArray = tk_user_roles.toString().split(",");
-    console.log(rolesArray);
     var approveRequiredRole =
       "mqsubmission_" + tk_appname.toLowerCase() + "_approver";
     var approveSuperAdminRole = "mqsubmission_superadmin";
