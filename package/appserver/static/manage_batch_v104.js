@@ -100,7 +100,7 @@ require([
       var role;
       for (role of rolesArray) {
         // for each role the user is member of, attempt to extract the MQ app name and push to the array
-        if (/mqsubmission_/i.test(role)) {
+        if (/mqsubmission_([^\_]+)_\w+/i.test(role)) {
           regex_matches = role.match(/mqsubmission_([^\_]+)_\w+/);
           appName = regex_matches[1];
           appArray.push(appName);
@@ -202,6 +202,7 @@ require([
     // members of the role mqsubmission_superadmin can approve or manage batches for all applications
 
     var rolesArray = tk_user_roles.toString().split(",");
+    console.log(rolesArray);
     var approveRequiredRole =
       "mqsubmission_" + tk_appname.toLowerCase() + "_approver";
     var approveSuperAdminRole = "mqsubmission_superadmin";
