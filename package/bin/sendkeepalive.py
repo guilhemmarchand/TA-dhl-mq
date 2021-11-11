@@ -44,6 +44,7 @@ class SendKeepAlive(GeneratingCommand):
             storage_passwords = self.service.storage_passwords
             kvstore_instance = None
             bearer_token = None
+            ha_group = None
             for stanza in confs:
                 if stanza.name == "advanced_configuration":
                     for key, value in stanza.content.items():
@@ -51,6 +52,12 @@ class SendKeepAlive(GeneratingCommand):
                             mqpassthrough = value
                         if key == "kvstore_instance":
                             kvstore_instance = value
+                        if key == "ha_group":
+                            ha_group = value
+
+            # If the ha_group is not defined, set it equal to the forwarder hostname
+            if not ha_group:
+                ha_group = socket.gethostname()
 
             # Define the headers, use bearer token if instance is not local
             if str(kvstore_instance) != "localhost:8089":
@@ -110,80 +117,54 @@ class SendKeepAlive(GeneratingCommand):
                 myhostname = socket.gethostname()
                 self.logger.fatal(str(myhostname))
 
-                # loop through the configured account, and insert a keep alive record for the consumer
+                # define a unique md5
+                md5_str = str(myhostname)
+                md5 = hashlib.md5(md5_str.encode('utf-8')).hexdigest()
 
-                # At least one account needs to be configured
-                isconfigured = False
-                conf_file = "ta_dhl_mq_account"
-                confs = self.service.confs[str(conf_file)]
-                for stanza in confs:
+                # Insert a keepalive record for this consumer
 
-                    self.logger.fatal(str(stanza.name))
-                    isconfigured = True
-                    for key, value in stanza.content.items():
-                        if key == "hagroup":
-                            hagroup = value
-                        if key == "mqhost":
-                            mqhost = value
+                # get the existing record, if any
+                try:
+                    record = collection.data.query_by_id(md5)
 
-                    # define a unique md5
-                    md5_str = str(hagroup) + ":" + str(myhostname)
-                    md5 = hashlib.md5(md5_str.encode('utf-8')).hexdigest()
-                    self.logger.fatal(str(md5))
+                except Exception as e:
+                    record = None
 
-                    # For every key manager, insert a keepalive record for this consumer
+                # Proceed
+                if record is not None and len(record)>2:
 
-                    # get the existing record, if any
                     try:
-                        record = json.dumps(collection.data.query_by_id(md5), indent=1)
+                        # update the record
+                        collection.data.update(md5, json.dumps({
+                            "ha_group_name": str(ha_group),
+                            "consumer_name": str(myhostname),
+                            "mtime": str(time.time())
+                            }))
+
+                        data = {'_time': time.time(), '_raw': "{\"response\": \"" + "keep alive sent successfully\"}"}
+                        yield data
+                        sys.exit(0)
 
                     except Exception as e:
-                        record = None
-
-                    # Proceed
-                    if record is not None and len(record)>2:
-
-                        try:
-                            # update the record
-                            collection.data.update(md5, json.dumps({
-                                "ha_group_name": str(hagroup),
-                                "account_name": str(stanza.name),
-                                "consumer_name": str(myhostname),
-                                "mqhost": str(mqhost),
-                                "mtime": str(time.time())
-                                }))
-
-                        except Exception as e:
-                            self.logger.fatal('Failed to update the keepalive record in the audit KVstore collection with exception: ' + str(e))
-
-                    else:
-
-                        try:
-                            # Insert the record
-                            collection.data.insert(json.dumps({
-                                "_key": str(md5),
-                                "ha_group_name": str(hagroup),
-                                "account_name": str(stanza.name),
-                                "consumer_name": str(myhostname),
-                                "mqhost": str(mqhost),
-                                "mtime": str(time.time())
-                                }))
-
-                        except Exception as e:
-                            self.logger.fatal('Failed to insert a new keepalive record in the audit KVstore collection with exception: ' + str(e))
-
-
-                if isconfigured:
-
-                    data = {'_time': time.time(), '_raw': "{\"response\": \"" + "keep alive sent successfully\"}"}
-                    yield data
-                    sys.exit(0)
+                        self.logger.fatal('Failed to update the keepalive record in the audit KVstore collection with exception: ' + str(e))
 
                 else:
 
-                    data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error, there are no accounts configured yet\"}"}
-                    yield data
-                    sys.exit(1)
+                    try:
+                        # Insert the record
+                        collection.data.insert(json.dumps({
+                            "_key": str(md5),
+                            "ha_group_name": str(ha_group),
+                            "consumer_name": str(myhostname),
+                            "mtime": str(time.time())
+                            }))
+
+                        data = {'_time': time.time(), '_raw': "{\"response\": \"" + "keep alive sent successfully\"}"}
+                        yield data
+                        sys.exit(0)
+
+                    except Exception as e:
+                        self.logger.fatal('Failed to insert a new keepalive record in the audit KVstore collection with exception: ' + str(e))
 
         else:
 

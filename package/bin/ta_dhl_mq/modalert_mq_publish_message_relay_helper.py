@@ -104,6 +104,11 @@ def process_event(helper, *args, **kwargs):
     import splunklib.client as client
     import time
     import requests
+    import hashlib
+    import socket
+
+    # my hostname
+    myhostname = socket.gethostname()
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -131,6 +136,11 @@ def process_event(helper, *args, **kwargs):
     # Get kvstore_instance
     kvstore_instance = helper.get_global_setting("kvstore_instance")
     helper.log_debug("kvstore_instance={}".format(kvstore_instance))
+
+    # turn the kvstore_instance into an object
+    kvstore_instance_list = kvstore_instance.split(":")
+    kvstore_remote_instance = kvstore_instance_list[0]
+    kvstore_remote_port = kvstore_instance_list[1]
 
     # Get bearer_token
     bearer_token = get_bearer_token(helper, session_key)
@@ -166,6 +176,10 @@ def process_event(helper, *args, **kwargs):
     # Get mqpassthrough
     mqpassthrough = helper.get_global_setting("mqpassthrough")
     helper.log_debug("mqpassthrough={}".format(mqpassthrough))
+
+    # Get ha_group
+    ha_group = helper.get_global_setting("ha_group")
+    helper.log_debug("ha_group={}".format(ha_group))
 
     # Get kvstore_eviction
     kvstore_eviction = helper.get_global_setting("kvstore_eviction")
@@ -334,6 +348,57 @@ def process_event(helper, *args, **kwargs):
             return 0
 
         elif str(mqpassthrough) == "disabled":
+            
+            # first, attempt to login to the service, if failing there's nothing we can do
+            msg = "Attempting to login to the remote KVstore service on " + str(kvstore_remote_instance) + ":" + str(kvstore_remote_port)
+            helper.log_debug(msg)
+
+            try:
+
+                collection_name = "kv_mq_publish_ha_groups"            
+                service = client.connect(
+                    splunkToken=str(bearer_token),
+                    owner="nobody",
+                    app="TA-dhl-mq",
+                    host=kvstore_remote_instance,
+                    port=kvstore_remote_port
+                )
+                collection = service.kvstore[collection_name]
+
+            except Exception as e:
+
+                msg = "Error logging to the service with exception " + str(e)
+                helper.log_error(msg)
+                return 1
+
+            # define a unique md5
+            md5 = hashlib.md5(ha_group.encode('utf-8')).hexdigest()
+            helper.log_debug("md5={}".format(md5))
+
+            # get the existing record, if any
+            record = None
+            try:
+                record = collection.data.query_by_id(md5)
+
+            except Exception as e:
+                record = None
+            helper.log_debug("record={}".format(record))
+
+            # Proceed
+            ha_group_elected_manager = None
+            if record is not None and len(record)>2:
+                ha_group_elected_manager = record.get('ha_group_elected_manager')
+                helper.log_debug("ha_group_elected_manager={}".format(ha_group_elected_manager))
+
+            # Only proceed either we run in standalone, or we are the manager
+            if ha_group_elected_manager:
+
+                if str(ha_group_elected_manager) != str(myhostname):
+
+                    msg = "Nothing to do, this consumer is not the current manager for the HA group " \
+                        + str(ha_group) + ", the current manager is: " + str(ha_group_elected_manager)
+                    helper.log_info(msg)
+                    return 0
 
             # get the record age in seconds
             record_age = int(round(float(time.time()) - float(ctime), 0))

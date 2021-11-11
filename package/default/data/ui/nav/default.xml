@@ -4,6 +4,7 @@
     <view name="configuration" />
 	<a href="search?q=%7C%20inputlookup%20mq_publish_backlog%20%7C%20eval%20key%3D_key">MQ KVstore collection</a>
 	<a href="search?q=%7C%20inputlookup%20mq_publish_batch_history%20%7C%20sort%20-%20limit%3D0%20ctime%20%7C%20eval%20ctime%3Dstrftime(ctime/1000%2C%20&quot;%25c&quot;)">MQ Batch validation history</a>
+	<a href="search?q=%7C%20inputlookup%20mq_publish_ha_groups%20%7C%20eval%20key%3D_key%20%7C%20fields%20key%2C%20ha_group_name%2C%20ha_group_elected_manager%2C%20ha_registered_consumers%2C%20ha_group_election_mtime%20%7C%20eval%20ha_group_election_mtime%3Dstrftime(ha_group_election_mtime%2C%20&quot;%25c&quot;)">High Availability groups</a>
 	<collection label="Logging reports">
 		<saved name="DHL MQ Logs - massbatch logs (singleline messages published in batches)" />
 		<saved name="DHL MQ Logs - relay and multiline publishing logs (re-attempts of failed batches and multiline publishing)" />

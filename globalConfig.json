@@ -75,16 +75,6 @@
                             "defaultValue": "SPLUNK.APP.SVRCONN"
                         },
                         {
-                            "type": "text",
-                            "label": "High Avaibility group",
-                            "help": "Enter the identifier for the high availibility group, multiple consumers can be set to consume the same group and one will get elected as the manager.",
-                            "field": "hagroup",
-                            "options": {
-                                "display": true
-                            },
-                            "required": true
-                        },
-                        {
                             "type": "oauth",
                             "field": "oauth",
                             "label": "Not used",
@@ -246,6 +236,17 @@
                             "defaultValue": "",
                             "required": false,
                             "encrypted": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "High Availability Group",
+                            "help": "Enter the identifier for the high availability group, multiple consumers can be part of the same high availability group and a manager gets elected automatically.",
+                            "field": "ha_group",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "",
+                            "required": false
                         },
                         {
                             "type": "text",

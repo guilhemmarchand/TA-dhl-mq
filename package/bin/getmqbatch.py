@@ -14,10 +14,12 @@ import requests
 import time
 import datetime
 import csv
+import json
 import subprocess
 import uuid
 import hashlib
 import re
+import socket
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -45,12 +47,16 @@ class GetMqReplay(GeneratingCommand):
                                                 namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
             splunkd_port = entity['mgmtHostPort']
 
+            # my hostname
+            myhostname = socket.gethostname()
+
             # Get conf
             conf_file = "ta_dhl_mq_settings"
             confs = self.service.confs[str(conf_file)]
             storage_passwords = self.service.storage_passwords
             kvstore_instance = None
             bearer_token = None
+            ha_group = None
             for stanza in confs:
                 if stanza.name == "advanced_configuration":
                     for key, value in stanza.content.items():
@@ -64,6 +70,8 @@ class GetMqReplay(GeneratingCommand):
                             mqclient_bin_path = value
                         if key == "q_bin_path":
                             q_bin_path = value
+                        if key == "ha_group":
+                            ha_group = value
 
             # Define the headers, use bearer token if instance is not local
             if str(kvstore_instance) != "localhost:8089":
@@ -86,8 +94,18 @@ class GetMqReplay(GeneratingCommand):
                     bearer_token = None
 
                 header = 'Bearer ' + str(bearer_token)
+
+                # Verify the HA group, if is unset, it will be equal to the hostname of the consumer
+                if not ha_group:
+                    ha_group = myhostname
+
             else:
                 header = 'Splunk ' + str(session_key)
+
+            # turn the kvstore_instance into an object
+            kvstore_instance_list = kvstore_instance.split(":")
+            kvstore_remote_instance = kvstore_instance_list[0]
+            kvstore_remote_port = kvstore_instance_list[1]
 
             # Define the url
             url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
@@ -108,6 +126,56 @@ class GetMqReplay(GeneratingCommand):
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
             csv_data = response.text
 
+            # first, attempt to login to the service, if failing there's nothing we can do
+            try:
+
+                collection_name = "kv_mq_publish_ha_groups"            
+                service = client.connect(
+                    splunkToken=str(bearer_token),
+                    owner="nobody",
+                    app="TA-dhl-mq",
+                    host=kvstore_remote_instance,
+                    port=kvstore_remote_port
+                )
+                collection = service.kvstore[collection_name]
+
+            except Exception as e:
+
+                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error: logging to the service with exception " + str(e) + "\"}"}
+                yield data
+                sys.exit(1)
+
+            # define a unique md5
+            md5 = hashlib.md5(ha_group.encode('utf-8')).hexdigest()
+            # self.logger.fatal(md5)
+
+            # get the existing record, if any
+            record = None
+            try:
+                record = collection.data.query_by_id(md5)
+
+            except Exception as e:
+                record = None
+            # self.logger.fatal(record)
+
+            # Proceed
+            ha_group_elected_manager = None
+            if record is not None and len(record)>2:
+                ha_group_elected_manager = record.get('ha_group_elected_manager')
+
+            # self.logger.fatal(record)
+            # self.logger.fatal(ha_group_elected_manager)
+
+            # Only proceed either we run in standalone, or we are the manager
+            if ha_group_elected_manager:
+
+                if str(ha_group_elected_manager) != str(myhostname):
+
+                    data = {'_time': time.time(), '_raw': "{\"response\": \"Nothing to do, this consumer is not the current manager for the HA group " \
+                        + str(ha_group) + ", the current manager is: " + str(ha_group_elected_manager) + "\"}"}
+                    yield data
+                    sys.exit(0)
+            
             # first, let's create a folder to temporary store our batch files
             SPLUNK_HOME = os.environ["SPLUNK_HOME"]
             batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/massbatch"
