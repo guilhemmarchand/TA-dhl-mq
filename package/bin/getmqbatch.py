@@ -17,7 +17,6 @@ import csv
 import json
 import subprocess
 import uuid
-import hashlib
 import re
 import socket
 import urllib3
@@ -101,7 +100,7 @@ class GetMqReplay(GeneratingCommand):
 
             else:
                 header = 'Splunk ' + str(session_key)
-                
+
             # Define the url
             url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
 
@@ -132,26 +131,18 @@ class GetMqReplay(GeneratingCommand):
             )
             ha_group_collection = service.kvstore[ha_group_collection_name]
 
-            # define a unique md5
-            md5 = hashlib.md5(ha_group.encode('utf-8')).hexdigest()
-            # self.logger.fatal(md5)
-
             # get the existing record, if any
+            query_string = '{ "ha_group_name": "' + str(ha_group) + '" }'
             record = None
             try:
-                record = ha_group_collection.data.query_by_id(md5)
+                record = ha_group_collection.data.query(query=str(query_string))
 
             except Exception as e:
                 record = None
-            # self.logger.fatal(record)
 
             # Proceed
             ha_group_elected_manager = None
-            if record is not None and len(record)>2:
-                ha_group_elected_manager = record.get('ha_group_elected_manager')
-
-            # self.logger.fatal(record)
-            # self.logger.fatal(ha_group_elected_manager)
+            ha_group_elected_manager = record[0].get('ha_group_elected_manager')
 
             # Only proceed either we run in standalone, or we are the manager
             if ha_group_elected_manager:
