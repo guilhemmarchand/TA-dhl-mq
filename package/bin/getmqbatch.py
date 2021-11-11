@@ -101,12 +101,7 @@ class GetMqReplay(GeneratingCommand):
 
             else:
                 header = 'Splunk ' + str(session_key)
-
-            # turn the kvstore_instance into an object
-            kvstore_instance_list = kvstore_instance.split(":")
-            kvstore_remote_instance = kvstore_instance_list[0]
-            kvstore_remote_port = kvstore_instance_list[1]
-
+                
             # Define the url
             url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
 
@@ -126,24 +121,16 @@ class GetMqReplay(GeneratingCommand):
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
             csv_data = response.text
 
-            # first, attempt to login to the service, if failing there's nothing we can do
-            try:
-
-                collection_name = "kv_mq_publish_ha_groups"            
-                service = client.connect(
-                    splunkToken=str(bearer_token),
-                    owner="nobody",
-                    app="TA-dhl-mq",
-                    host=kvstore_remote_instance,
-                    port=kvstore_remote_port
-                )
-                collection = service.kvstore[collection_name]
-
-            except Exception as e:
-
-                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error: logging to the service with exception " + str(e) + "\"}"}
-                yield data
-                sys.exit(1)
+            # local cache service
+            ha_group_collection_name = "kv_mq_publish_local_cache_ha_groups"
+            service = client.connect(
+                token=str(session_key),
+                owner="nobody",
+                app="TA-dhl-mq",
+                host="localhost",
+                port=splunkd_port
+            )
+            ha_group_collection = service.kvstore[ha_group_collection_name]
 
             # define a unique md5
             md5 = hashlib.md5(ha_group.encode('utf-8')).hexdigest()
@@ -152,7 +139,7 @@ class GetMqReplay(GeneratingCommand):
             # get the existing record, if any
             record = None
             try:
-                record = collection.data.query_by_id(md5)
+                record = ha_group_collection.data.query_by_id(md5)
 
             except Exception as e:
                 record = None

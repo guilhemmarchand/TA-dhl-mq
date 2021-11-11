@@ -120,6 +120,7 @@ require([
       // set the root search, and the token
       appStringSearch = 'appname="' + appArray.join('" OR appname="') + '"';
       appStringHtml = "[ " + appArrayHtml.join(", ") + " ]";
+      appStringHtml = appStringHtml.toUpperCase();
       setToken("tk_user_app_searchstring", appStringSearch);
 
       // Notify

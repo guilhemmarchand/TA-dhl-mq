@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-# send keepalive
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
@@ -11,14 +9,14 @@ import splunk
 import splunk.entity
 import requests
 import time
-import socket
 import datetime
-import json
 import csv
+import json
 import subprocess
 import uuid
 import hashlib
 import re
+import socket
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -31,12 +29,20 @@ from solnlib import conf_manager
 
 @Configuration(distributed=False)
 
-class SendKeepAlive(GeneratingCommand):
+class GetHaGroups(GeneratingCommand):
 
 
     def generate(self, **kwargs):
 
         if self:
+
+            # Get the session key
+            session_key = self._metadata.searchinfo.session_key
+
+            # Get splunkd port
+            entity = splunk.entity.getEntity('/server', 'settings',
+                                                namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
+            splunkd_port = entity['mgmtHostPort']
 
             # Get conf
             conf_file = "ta_dhl_mq_settings"
@@ -52,15 +58,22 @@ class SendKeepAlive(GeneratingCommand):
                             mqpassthrough = value
                         if key == "kvstore_instance":
                             kvstore_instance = value
+                        if key == "kvstore_search_filters":
+                            kvstore_search_filters = value
+                        if key == "mqclient_bin_path":
+                            mqclient_bin_path = value
+                        if key == "q_bin_path":
+                            q_bin_path = value
                         if key == "ha_group":
                             ha_group = value
 
-            # If the ha_group is not defined, set it equal to the forwarder hostname
-            if not ha_group:
-                ha_group = socket.gethostname()
+            if str(mqpassthrough) == 'enabled':
+                # output a report to Splunk
+                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "This instance is configured in passthrough mode, you can disable the execution of the search.}"}
+                yield data
+                sys.exit(0)
 
-            # Define the headers, use bearer token if instance is not local
-            if str(kvstore_instance) != "localhost:8089":
+            else:
 
                 # The bearer token is stored in the credential store
                 # However, likely due to the number of chars, the credential.content.get SDK command is unable to return its value in a single operation
@@ -79,35 +92,18 @@ class SendKeepAlive(GeneratingCommand):
                 else:
                     bearer_token = None
 
-            # if mqpassthrough is enabled we have nothing to do
-            if str(mqpassthrough) == 'enabled':
-                # output a report to Splunk
-                data = {'_time': time.time(), '_raw': "{\"response\": \"" + "This instance is configured in passthrough mode, you can disable the execution of the search.\"}"}
-                yield data
-                sys.exit(0)
-
-            else:
-                # do something
-
-                # set the header
+                # Set header
                 header = 'Bearer ' + str(bearer_token)
 
-                # Define the url
+                # Set url
                 url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
 
-                # get my hostname
-                myhostname = socket.gethostname()
-                self.logger.fatal(str(myhostname))
-
-                # define a unique md5
-                md5_str = str(myhostname)
-                md5 = hashlib.md5(md5_str.encode('utf-8')).hexdigest()
-
                 # create or update the record
-                search = "| makeresults | eval key=\"" + str(md5) + "\", ha_group_name=\"" + str(ha_group) + "\", mtime=\"" + str(time.time()) + "\", consumer_name=\"" + str(myhostname) + "\" | fields - _time | outputlookup mq_publish_ha_consumers_keepalive append=t key_field=key"
+                search = "| inputlookup mq_publish_ha_groups | eval key=_key"
                 output_mode = "csv"
                 exec_mode = "oneshot"
                 response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                csv_data = response.text
 
                 if response.status_code not in (200, 201, 204):
                     logmsg = "sending keepalive has failed, server response: " + str(response.text)
@@ -116,14 +112,21 @@ class SendKeepAlive(GeneratingCommand):
                     sys.exit(0)
 
                 else:
-                    data = {'_time': time.time(), '_raw': "{\"response\": \"" + "keep alive sent successfully\"}"}
-                    yield data
-                    sys.exit(0)
 
+                    # Use the CSV dict reader
+                    readCSV = csv.DictReader(csv_data.splitlines(True), delimiter=str(u','), quotechar=str(u'"'))
+
+                    #
+                    # IN RECORDS
+                    #
+
+                    # For row in CSV, generate the _raw
+                    for row in readCSV:
+                        yield {'_time': time.time(), '_raw': json.dumps(row)}
         else:
 
             # yield
-            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error: bad request\"}"}
+            data = {'_time': time.time(), '_raw': "{\"response\": \"" + "Error: bad request}"}
             yield data
 
-dispatch(SendKeepAlive, sys.argv, sys.stdin, sys.stdout, __name__)
+dispatch(GetHaGroups, sys.argv, sys.stdin, sys.stdout, __name__)
