@@ -114,6 +114,9 @@ require([
         appArrayHtml.push("All applications (not a member of any MQ group)");
       }
 
+      // dedup the array
+      appArrayHtml = [...new Set(appArrayHtml)];
+
       // set the root search, and the token
       appStringSearch = 'appname="' + appArray.join('" OR appname="') + '"';
       appStringHtml = "[ " + appArrayHtml.join(", ") + " ]";
