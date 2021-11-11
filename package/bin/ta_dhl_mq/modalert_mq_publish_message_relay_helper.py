@@ -1,23 +1,6 @@
 
 # encoding = utf-8
 
-# This function is required to handle special chars for storing the object in the KVstore
-def checkstrforjson(i):
-
-    if i is not None:
-        i = i.replace("\\", "\\\\")
-        # Manage line breaks
-        i = i.replace("\n", "\\n")
-        i = i.replace("\r", "\\r")
-        # Manage tabs
-        i = i.replace("\t", "\\t")
-        # Manage breaking delimiters
-        i = i.replace("\"", "\\\"")
-        # Non ASCII char
-        i = i.replace("\u0000", "")
-        return i
-
-
 def delete_record(helper, key, record_url, headers, *args, **kwargs):
 
     # imports
@@ -74,22 +57,7 @@ def get_bearer_token(helper, session_key, **kwargs):
         bearer_token = bearer_token_rawvalue_match.group(1)
 
     return bearer_token
-
-
-def update_record(helper, record, record_url, headers, *args, **kwargs):
-
-    # imports
-    import requests    
-
-    response = requests.post(record_url, headers=headers, data=record,
-                            verify=False)
-    if response.status_code not in (200, 201, 204):
-        helper.log_error(
-            'KVstore saving has failed!. url={}, data={}, HTTP Error={}, '
-            'content={}'.format(record_url, record, response.status_code, response.text))
-    else:
-        helper.log_debug("Kvstore saving is successful")
-
+    
 
 def process_event(helper, *args, **kwargs):
 
@@ -106,11 +74,6 @@ def process_event(helper, *args, **kwargs):
     import splunklib.client as client
     import time
     import requests
-    import hashlib
-    import socket
-
-    # my hostname
-    myhostname = socket.gethostname()
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -139,20 +102,17 @@ def process_event(helper, *args, **kwargs):
     kvstore_instance = helper.get_global_setting("kvstore_instance")
     helper.log_debug("kvstore_instance={}".format(kvstore_instance))
 
-    # turn the kvstore_instance into an object
-    kvstore_instance_list = kvstore_instance.split(":")
-    kvstore_remote_instance = kvstore_instance_list[0]
-    kvstore_remote_port = kvstore_instance_list[1]
-
-    # Get bearer_token
-    bearer_token = get_bearer_token(helper, session_key)
-    # helper.log_debug("bearer_token={}".format(bearer_token))
-
     # Define the headers and kv_url, use bearer token if instance is not local
     if str(kvstore_instance) != "localhost:8089":
+
+        # Get bearer_token
+        bearer_token = get_bearer_token(helper, session_key)
+        # helper.log_debug("bearer_token={}".format(bearer_token))
+
         headers = {
             'Authorization': 'Bearer %s' % bearer_token,
             'Content-Type': 'application/json'}
+        header = 'Bearer ' + str(bearer_token)
         kv_url = 'https://' + str(kvstore_instance) \
                         + '/servicesNS/nobody/' \
                         'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
@@ -160,6 +120,7 @@ def process_event(helper, *args, **kwargs):
         headers = {
             'Authorization': 'Splunk %s' % session_key,
             'Content-Type': 'application/json'}
+        header = 'Splunk ' + str(session_key)
         kv_url = 'https://localhost:' + str(splunkd_port) \
                         + '/servicesNS/nobody/' \
                         'TA-dhl-mq/storage/collections/data/kv_mq_publish_backlog/'
@@ -178,10 +139,6 @@ def process_event(helper, *args, **kwargs):
     # Get mqpassthrough
     mqpassthrough = helper.get_global_setting("mqpassthrough")
     helper.log_debug("mqpassthrough={}".format(mqpassthrough))
-
-    # Get ha_group
-    ha_group = helper.get_global_setting("ha_group")
-    helper.log_debug("ha_group={}".format(ha_group))
 
     # Get kvstore_eviction
     kvstore_eviction = helper.get_global_setting("kvstore_eviction")
@@ -310,6 +267,9 @@ def process_event(helper, *args, **kwargs):
         # Set record_url
         record_url = str(kv_url) + str(key)
 
+        # Define the url
+        url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
+
         #
         # START LOGIC 
         #
@@ -350,57 +310,6 @@ def process_event(helper, *args, **kwargs):
             return 0
 
         elif str(mqpassthrough) == "disabled":
-            
-            # first, attempt to login to the service, if failing there's nothing we can do
-            msg = "Attempting to login to the remote KVstore service on " + str(kvstore_remote_instance) + ":" + str(kvstore_remote_port)
-            helper.log_debug(msg)
-
-            try:
-
-                collection_name = "kv_mq_publish_ha_groups"            
-                service = client.connect(
-                    splunkToken=str(bearer_token),
-                    owner="nobody",
-                    app="TA-dhl-mq",
-                    host=kvstore_remote_instance,
-                    port=kvstore_remote_port
-                )
-                collection = service.kvstore[collection_name]
-
-            except Exception as e:
-
-                msg = "Error logging to the service with exception " + str(e)
-                helper.log_error(msg)
-                return 1
-
-            # define a unique md5
-            md5 = hashlib.md5(ha_group.encode('utf-8')).hexdigest()
-            helper.log_debug("md5={}".format(md5))
-
-            # get the existing record, if any
-            record = None
-            try:
-                record = collection.data.query_by_id(md5)
-
-            except Exception as e:
-                record = None
-            helper.log_debug("record={}".format(record))
-
-            # Proceed
-            ha_group_elected_manager = None
-            if record is not None and len(record)>2:
-                ha_group_elected_manager = record.get('ha_group_elected_manager')
-                helper.log_debug("ha_group_elected_manager={}".format(ha_group_elected_manager))
-
-            # Only proceed either we run in standalone, or we are the manager
-            if ha_group_elected_manager:
-
-                if str(ha_group_elected_manager) != str(myhostname):
-
-                    msg = "Nothing to do, this consumer is not the current manager for the HA group " \
-                        + str(ha_group) + ", the current manager is: " + str(ha_group_elected_manager)
-                    helper.log_info(msg)
-                    return 0
 
             # get the record age in seconds
             record_age = int(round(float(time.time()) - float(ctime), 0))
@@ -510,23 +419,16 @@ def process_event(helper, *args, **kwargs):
                         + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
                         helper.log_info(logmsg)
 
-                        # Update the KVstore record
-                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                                + '", "status": "success", "manager": "' + str(mqmanager) \
-                                + '", "queue": "' + str(mqqueuedest) \
-                                + '", "appname": "' + str(appname) \
-                                + '", "region": "' + str(region) \
-                                + '", "no_attempts": "' + str(no_attempts) \
-                                + '", "no_max_retry": "' + str(no_max_retry) \
-                                + '", "user": "' + str(user) \
-                                + '", "multiline": "' + str(multiline) \
-                                + '", "batch_uuid": "' + str(batch_uuid) \
-                                + '", "validation_required": "' + str(validation_required) \
-                                + '", "comment": "' + str(comment) \
-                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
-
                         # update the record
-                        update_record(helper, record, record_url, headers)
+                        search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"success\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                        output_mode = "csv"
+                        exec_mode = "oneshot"
+                        response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                        if response.status_code not in (200, 201, 204):
+                            logmsg = "Kvstore updated has failed, server response: " + str(response.text)
+                            helper.log_error(logmsg)
+
                         return 0
 
                     else:
@@ -554,23 +456,16 @@ def process_event(helper, *args, **kwargs):
                                 helper.log_error(logmsg)
                                 helper.log_info("kvstore_eviction: preserving the record with key=" + str(key))
 
-                                # Update the KVstore record
-                                record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                                        + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
-                                        + '", "queue": "' + str(mqqueuedest) \
-                                        + '", "appname": "' + str(appname) \
-                                        + '", "region": "' + str(region) \
-                                        + '", "no_attempts": "' + str(no_attempts) \
-                                        + '", "no_max_retry": "' + str(no_max_retry) \
-                                        + '", "user": "' + str(user) \
-                                        + '", "multiline": "' + str(multiline) \
-                                        + '", "batch_uuid": "' + str(batch_uuid) \
-                                        + '", "validation_required": "' + str(validation_required) \
-                                        + '", "comment": "' + str(comment) \
-                                        + '", "message": "' + str(checkstrforjson(message)) + '"}'
-
                                 # update the record
-                                update_record(helper, record, record_url, headers)
+                                search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"permanent_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                                output_mode = "csv"
+                                exec_mode = "oneshot"
+                                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                                if response.status_code not in (200, 201, 204):
+                                    logmsg = "Kvstore updated has failed, server response: " + str(response.text)
+                                    helper.log_error(logmsg)
+
                                 return 0
 
                         else:
@@ -585,25 +480,16 @@ def process_event(helper, *args, **kwargs):
                             + ", exception=" + str(output)
                             helper.log_error(logmsg)
 
-                            # Update the KVstore record
-                            record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                                    + '", "status": "temporary_failure", "manager": "' + str(mqmanager) \
-                                    + '", "queue": "' + str(mqqueuedest) \
-                                    + '", "appname": "' + str(appname) \
-                                    + '", "region": "' + str(region) \
-                                    + '", "no_attempts": "' + str(no_attempts) \
-                                    + '", "no_max_retry": "' + str(no_max_retry) \
-                                    + '", "user": "' + str(user) \
-                                    + '", "multiline": "' + str(multiline) \
-                                    + '", "batch_uuid": "' + str(batch_uuid) \
-                                    + '", "validation_required": "' + str(validation_required) \
-                                    + '", "comment": "' + str(comment) \
-                                    + '", "message": "' + str(checkstrforjson(message)) + '"}'
-                            response = requests.post(record_url, headers=headers, data=record,
-                                                    verify=False)
-
                             # update the record
-                            update_record(helper, record, record_url, headers)
+                            search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"temporary_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                            output_mode = "csv"
+                            exec_mode = "oneshot"
+                            response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                            if response.status_code not in (200, 201, 204):
+                                logmsg = "Kvstore updated has failed, server response: " + str(response.text)
+                                helper.log_error(logmsg)
+
                             return 0
 
                 # This stage should not be reached as we deal with the reached max amount of attempts
@@ -630,21 +516,14 @@ def process_event(helper, *args, **kwargs):
                         helper.log_error(logmsg)
                         helper.log_info("kvstore_eviction: preserving the record with key=" + str(key))
 
-                        # Update the KVstore record
-                        record = '{"ctime": "' + str(ctime) + '", "mtime": "' + str(time.time()) \
-                                + '", "status": "permanent_failure", "manager": "' + str(mqmanager) \
-                                + '", "queue": "' + str(mqqueuedest) \
-                                + '", "appname": "' + str(appname) \
-                                + '", "region": "' + str(region) \
-                                + '", "no_attempts": "' + str(no_attempts) \
-                                + '", "no_max_retry": "' + str(no_max_retry) \
-                                + '", "user": "' + str(user) \
-                                + '", "multiline": "' + str(multiline) \
-                                + '", "batch_uuid": "' + str(batch_uuid) \
-                                + '", "validation_required": "' + str(validation_required) \
-                                + '", "comment": "' + str(comment) \
-                                + '", "message": "' + str(checkstrforjson(message)) + '"}'
-
                         # update the record
-                        update_record(helper, record, record_url, headers)
+                        search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"permanent_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                        output_mode = "csv"
+                        exec_mode = "oneshot"
+                        response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                        if response.status_code not in (200, 201, 204):
+                            logmsg = "Kvstore updated has failed, server response: " + str(response.text)
+                            helper.log_error(logmsg)
+
                         return 0
