@@ -101,8 +101,6 @@ class GetMqReplay(GeneratingCommand):
             elif kvstore_search_filters:
                 search = str(search) + " where (status!=\"success\" AND status!=\"canceled\" AND status!=\"permanent_failure\") | where (validation_required=0) AND ( (multiline=0 AND no_attempts>0) OR (multiline=1) ) | search " + str(kvstore_search_filters)
 
-            # logging
-            self.logger.fatal(str(search))
             output_mode = "csv"
             exec_mode = "oneshot"
             response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 

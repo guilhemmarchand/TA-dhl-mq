@@ -67,10 +67,6 @@ class ManagePendingBatch(GeneratingCommand):
                     for role in username.role_entities:
                         user_roles.append(role.name)
 
-            # for debug
-            #for role in user_roles:
-            #    self.logger.fatal("DEBUG: " + str(role))
-
             # Get splunkd port
             entity = splunk.entity.getEntity('/server', 'settings',
                                                 namespace='TA-dhl-mq', sessionKey=session_key, owner='-')
@@ -147,10 +143,6 @@ class ManagePendingBatch(GeneratingCommand):
                 batch_appname = str(row['appname'])
                 batch_status = str(row['status'])
                 batch_validation_required = str(row['validation_required'])
-
-            #self.logger.fatal("DEBUG: batch_appname is " + batch_appname)
-            #self.logger.fatal("DEBUG: batch_status is " + batch_status)
-            #self.logger.fatal("DEBUG: batch_validation_required is " + batch_validation_required)
 
             # Break here if we didn't get a result
             if not batch_appname or not batch_status or not batch_validation_required:
@@ -267,7 +259,6 @@ class ManagePendingBatch(GeneratingCommand):
                             + " | eval key=_key | eval validation_required=0, status=\"canceled\", mtime=now() | outputlookup append=t key_field=key mq_publish_backlog" \
                             + " | stats values(status) as status, values(region) as region, values(appname) as appname, values(validation_required) as validation_required, count, values(manager) as manager, values(queue) as queue, values(user) as submitter, last(comment) as submitter_comment by batch_uuid" \
                             + " | eval action=if(count>0 AND validation_required=0 AND status=\"canceled\", \"success\", \"failure\") | fields action, *"
-                        #self.logger.fatal('search: ' + str(search))
                         output_mode = "csv"
                         exec_mode = "oneshot"
                         response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 

@@ -97,7 +97,6 @@ class SendKeepAlive(GeneratingCommand):
 
                 # get my hostname
                 myhostname = socket.gethostname()
-                self.logger.fatal(str(myhostname))
 
                 # define a unique md5
                 md5_str = str(myhostname)
