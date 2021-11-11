@@ -13,6 +13,8 @@ def checkstrforjson(i):
         i = i.replace("\t", "\\t")
         # Manage breaking delimiters
         i = i.replace("\"", "\\\"")
+        # Non ASCII char
+        i = i.replace("\u0000", "")
         return i
 
 
