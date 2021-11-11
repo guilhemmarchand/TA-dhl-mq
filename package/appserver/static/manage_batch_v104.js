@@ -199,10 +199,15 @@ require([
     // RBAC:
     // To allow approving, a user must be member of a role as:
     // mqsubmission_<appName>_approver
+    // members of the role mqsubmission_superadmin can approve or manage batches for all applications
+
     var rolesArray = tk_user_roles.toString().split(",");
     var approveRequiredRole =
       "mqsubmission_" + tk_appname.toLowerCase() + "_approver";
+    var approveSuperAdminRole = "mqsubmission_superadmin";
     if (rolesArray.indexOf(approveRequiredRole) > -1) {
+      canApprove = true;
+    } else if (rolesArray.indexOf(approveSuperAdminRole) > -1) {
       canApprove = true;
     } else {
       canApprove = false;
