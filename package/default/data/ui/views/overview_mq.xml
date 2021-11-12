@@ -7,7 +7,7 @@
 		<refreshType>delay</refreshType>
 	</search>
 	<search id="baseSearchLogs" depends="$showMain1$">
-		<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:relay" signature=* "message publication success" OR "failure in message publication" OR "permanent failure"
+		<query>(`idx_mq`) sourcetype="mq:actions:mq_publish_message:relay" signature=* "message publication success" OR "failure in message publication" OR "permanent failure"
 | stats count by status</query>
 		<earliest>$timerange.earliest$</earliest>
 		<latest>$timerange.latest$</latest>
@@ -15,7 +15,7 @@
 		<refreshType>delay</refreshType>
 	</search>
 	<search id="baseSearchDropdown" depends="$showTable$ $showMain1$">
-		<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$ ($tk_user_app_searchstring$)
+		<query>(`idx_mq`) sourcetype="mq:actions:mq_publish_message:relay" signature=* $status$ ($tk_user_app_searchstring$)
 | stats count by host, queue_manager, appname, region
 </query>
 		<earliest>$timerange.earliest$</earliest>
@@ -407,7 +407,7 @@
 		<panel depends="$showChart$">
 			<chart>
 				<search depends="$showChart$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ ($tk_user_app_searchstring$)
+					<query>(`idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ ($tk_user_app_searchstring$)
 | timechart count as success $minspan$ bins=1000 limit=45 by status</query>
 					<earliest>$timerange.earliest$</earliest>
 					<latest>$timerange.latest$</latest>
@@ -477,7 +477,7 @@
 			</input>
 			<table>
 				<search depends="$showTable$ $showMain1$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$ ($tk_user_app_searchstring$)
+					<query>(`idx_mq`) signature=* sourcetype="mq:actions:mq_publish_message:relay" $status$ $host$ $queue_manager$ $appname$ $region$ ($tk_user_app_searchstring$)
 | table _time, host, status, appname, region, queue_manager, queue, user, signature
 | eval status=if(status="success",  "✅" . status, "⭕" . status)
 | sort - limit=0 _time</query>
@@ -491,7 +491,7 @@
 		<panel depends="$showEvents$">
 			<event>
 				<search depends="$showEvents$ $showMain1$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:relay"</query>
+					<query>(`idx_mq`) sourcetype="mq:actions:mq_publish_message:relay"</query>
 					<earliest>$timerange.earliest$</earliest>
 					<latest>$timerange.latest$</latest>
 				</search>
@@ -509,7 +509,7 @@
 			</input>
 			<event>
 				<search depends="$showMain2$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:putmqrelay"</query>
+					<query>(`idx_mq`) sourcetype="mq:actions:mq_publish_message:putmqrelay"</query>
 					<earliest>$timerange.earliest$</earliest>
 					<latest>$timerange.latest$</latest>
 				</search>
@@ -527,7 +527,7 @@
 			</input>
 			<event>
 				<search depends="$showMain3$">
-					<query>(index="_internal" OR index="cim_modactions" OR `idx_mq`) sourcetype="mq:actions:mq_publish_message:managebatch"</query>
+					<query>(`idx_mq`) sourcetype="mq:actions:mq_publish_message:managebatch"</query>
 					<earliest>$timerange.earliest$</earliest>
 					<latest>$timerange.latest$</latest>
 				</search>
