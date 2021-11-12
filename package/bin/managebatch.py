@@ -153,10 +153,12 @@ class ManagePendingBatch(GeneratingCommand):
                 sys.exit(0)
 
             # RBAC: build the required Splunk role
+            # Members of the mqsubmission_superadmin role can handle any batch
             role_required = "mqsubmission_" + batch_appname.lower() + "_approver"
+            role_superadmin = "mqsubmission_superadmin"
 
             # If the user is not a member of this role, no action are allowed
-            if not role_required in user_roles:
+            if not role_required in user_roles and not role_superadmin in user_roles:
 
                 # yield
                 response = "Error: You do no have the permission to perform any action on this batch, the role " \
