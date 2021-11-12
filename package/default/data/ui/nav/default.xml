@@ -5,6 +5,7 @@
 	<a href="search?q=%7C%20inputlookup%20mq_publish_backlog%20%7C%20eval%20key%3D_key">MQ KVstore collection</a>
 	<a href="search?q=%7C%20inputlookup%20mq_publish_batch_history%20%7C%20sort%20-%20limit%3D0%20ctime%20%7C%20eval%20ctime%3Dstrftime(ctime/1000%2C%20&quot;%25c&quot;)">MQ Batch validation history</a>
 	<collection label="High Availibity">
+		<view name="ha_groups_overview" />
 		<a href="search?q=%7C%20inputlookup%20mq_publish_ha_groups%20%7C%20eval%20key%3D_key%20%7C%20fields%20key%2C%20ha_group_name%2C%20ha_group_elected_manager%2C%20ha_registered_consumers%2C%20ha_group_election_mtime%20%7C%20eval%20ha_group_election_mtime%3Dstrftime(ha_group_election_mtime%2C%20%22%25c%22)">Current group managers</a>
 		<a href="search?q=%7C%20inputlookup%20mq_publish_ha_consumers_keepalive%20%7C%20eval%20duration_since_last%3Dtostring(now()-mtime%2C%20%22duration%22)%2C%20mtime%3Dstrftime(mtime%2C%20%22%25c%22)%20%7C%20fields%20ha_group_name%2C%20consumer_name%2C%20duration_since_last%2C%20mtime">Last keep alive from consumers</a>
 	</collection>

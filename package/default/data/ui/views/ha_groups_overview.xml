@@ -1,0 +1,170 @@
+<form theme="dark" script="multiselect_all.js">
+  <label>HA groups overview</label>
+  <description>This dashboard shows the status of the HA group consumers - a consumer will be considered offline if it has not sent a keep alive during the last 10 minutes</description>
+  <search id="mainSearch">
+    <query>| inputlookup mq_publish_ha_groups | eval key=_key | fields key, ha_group_name, ha_group_elected_manager, ha_registered_consumers, ha_group_election_mtime | eval epoch_ha_group_election_mtime=ha_group_election_mtime, ha_group_election_mtime=strftime(ha_group_election_mtime, "%c")</query>
+    <refresh>1m</refresh>
+    <refreshType>delay</refreshType>
+  </search>
+  <search id="populateSearch" base="mainSearch">
+    <query>makemv delim="," ha_registered_consumers | mvexpand ha_registered_consumers | stats count by ha_group_name, ha_registered_consumers</query>
+  </search>
+  <search id="mainSearchOnlineOffline">
+    <query>| inputlookup mq_publish_ha_consumers_keepalive 
+| eval status=if(now()-mtime&gt;=10*60, "offline", "online")
+| stats count by status</query>
+    <refresh>1m</refresh>
+    <refreshType>delay</refreshType>
+  </search>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <single>
+        <search base="mainSearch">
+          <query>stats dc(ha_group_name) as dcount</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF HA-GROUPS</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="mainSearch">
+          <query>makemv delim="," ha_registered_consumers | stats dc(ha_registered_consumers) as dcount</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF REGISTERED CONSUMERS</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="mainSearchOnlineOffline">
+          <query>where status="online" | stats sum(count) as count | append [ |makeresults | eval count=0 | fields - _time ] | head 1</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0xdc4e41","0x53a051"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF ONLINE CONSUMERS</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search base="mainSearchOnlineOffline">
+          <query>where status="offline" | stats sum(count) as count | append [ |makeresults | eval count=0 | fields - _time ] | head 1</query>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">NUMBER OF OFFLINE CONSUMERS</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Search for HA groups and consumers:</title>
+      <input type="multiselect" token="tk_ha_group_name" searchWhenChanged="true">
+        <label>Search HA groups:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <valuePrefix>ha_group_name="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+        <fieldForLabel>ha_group_name</fieldForLabel>
+        <fieldForValue>ha_group_name</fieldForValue>
+        <search base="populateSearch">
+          <query>| stats count by ha_group_name | sort 0 ha_group_name</query>
+        </search>
+      </input>
+      <input type="multiselect" token="tk_ha_registered_consumer" searchWhenChanged="true">
+        <label>Search consumers:</label>
+        <choice value="*">ANY</choice>
+        <initialValue>*</initialValue>
+        <valuePrefix>consumer_name="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+        <fieldForLabel>ha_registered_consumers</fieldForLabel>
+        <fieldForValue>ha_registered_consumers</fieldForValue>
+        <search base="populateSearch">
+          <query>| stats count by ha_registered_consumers | sort 0 ha_registered_consumers</query>
+        </search>
+      </input>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>HA groups status</title>
+      <table>
+        <search base="mainSearch">
+          <query>eval status=if(ha_group_elected_manager!="none", "✅ operational", "❌ degraded") | eval consumer_name=ha_registered_consumers | makemv delim="," consumer_name | search $tk_ha_group_name$ $tk_ha_registered_consumer$ | fields - ha_registered_consumer | fields status, ha_group_name, ha_group_elected_manager, ha_registered_consumers, ha_group_election_mtime</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Per registered consumer status</title>
+      <table>
+        <search>
+          <query>| inputlookup mq_publish_ha_consumers_keepalive
+| search $tk_ha_group_name$ $tk_ha_registered_consumer$
+| eval status=if(now()-mtime&gt;=10*60, "❌ offline", "✅ online") 
+| eval duration_since_last=tostring(now()-mtime, "duration"), mtime=strftime(mtime, "%c")
+| fields status, ha_group_name, consumer_name, duration_since_last, mtime</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <refresh>1m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Consumers statuses over time</title>
+      <input type="time" token="time" searchWhenChanged="true">
+        <label>Period:</label>
+        <default>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <chart>
+        <search>
+          <query>`idx_mq` source="mqsubmission:hagroup:consumers_keepalive" $tk_ha_group_name$ $tk_ha_registered_consumer$
+| eval status=if(info_search_time-mtime&gt;=10*60, "offline", "online")
+| table _time, consumer_name, ha_group_name, status
+| bucket _time span=1m
+| stats count by _time, ha_group_name, consumer_name, status
+| timechart minspan=5m count by status</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+          <refresh>1m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Consumer status</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.fieldColors">{"online": 0x77dd77, "offline": 0xff6961}</option>
+        <option name="refresh.display">none</option>
+      </chart>
+    </panel>
+  </row>
+</form>
