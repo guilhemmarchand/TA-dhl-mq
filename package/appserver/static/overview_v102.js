@@ -100,7 +100,7 @@ require([
       var role;
       for (role of rolesArray) {
         // for each role the user is member of, attempt to extract the MQ app name and push to the array
-        if (/mqsubmission_/i.test(role)) {
+        if (/mqsubmission_([^\_]+)_\w+/i.test(role)) {
           regex_matches = role.match(/mqsubmission_([^\_]+)_\w+/);
           appName = regex_matches[1];
           appArray.push(appName);
