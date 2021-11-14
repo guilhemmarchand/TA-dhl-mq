@@ -41,6 +41,7 @@ Deployment and configuration:
 
    deployment
    configuration
+   high_availability
 
 User guide:
 ===========
