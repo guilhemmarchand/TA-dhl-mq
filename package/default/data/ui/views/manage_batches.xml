@@ -231,7 +231,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Manage an MQ batch</h1>
+                        <h1 style="color: dodgerblue;"><span class="glyphicon glyphicon-lock"></span>Manage an MQ batch</h1>
                     </div>
                     <div class="modal-body">
 
@@ -267,7 +267,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Oops!</h1>
+                        <h1 style="color: indianred;"><span class="glyphicon glyphicon-lock"></span>Oops!</h1>
                     </div>
                     <div class="modal-body">
                         <p>Sorry but it looks like an error occurred during the operation.<br />
@@ -294,7 +294,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Success</h1>
+                        <h1 style="color: #77dd77;"><span class="glyphicon glyphicon-lock"></span>Success</h1>
                     </div>
                     <div class="modal-body">
                         <p>The operation was successfully requested, it will take some minutes to be performed and taken into account.
@@ -316,7 +316,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Information</h1>
+                        <h1 style="color: dodgerblue;"><span class="glyphicon glyphicon-lock"></span>Information</h1>
                     </div>
                     <div class="modal-body">
                         <p>This batch has been successfully proceeded already.
@@ -338,7 +338,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Information</h1>
+                        <h1 style="color: dodgerblue;"><span class="glyphicon glyphicon-lock"></span>Information</h1>
                     </div>
                     <div class="modal-body">
                         <p>This batch has been canceled already.
@@ -360,7 +360,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Information</h1>
+                        <h1 style="color: dodgerblue;"><span class="glyphicon glyphicon-lock"></span>Information</h1>
                     </div>
                     <div class="modal-body">
                         <p>This batch was submitted but has failed permanently.
@@ -382,7 +382,7 @@
                 <div class="modal-content">
                     <div class="modal-header modal-header-danger">
                         <button type="button" class="close" data-dismiss="modal"></button>
-                        <h1 style="color: white;"><span class="glyphicon glyphicon-lock"></span>Insuffiscient permissions</h1>
+                        <h1 style="color: indianred;"><span class="glyphicon glyphicon-lock"></span>Insuffiscient permissions</h1>
                     </div>
                     <div class="modal-body">
                         <p>You do not have the required permissions to manage this batch, you need to be a member of the following Splunk role:
