@@ -274,7 +274,7 @@
                             <b>You might not have the relevant permissions, or an unexpected failure was encountered.</b><br />
                             <b>The server returned the following error message:</b>
                         </p>
-                        <div class="modal-error-message" style="margin: 10px 0; margin-left: 10px; margin-right: 10px; padding: 10px; border-radius: 3px 3px 3px 3px; color: #D8000C; background-color: #FF6E6E;">
+                        <div class="modal-error-message" style="margin: 10px 0; margin-left: 10px; margin-right: 10px; padding: 10px; border-radius: 3px 3px 3px 3px; color: #D8000C; background-color: #FF6E6E; overflow-wrap: break-word;">
                             <p>error return message</p>
                         </div>
                     </div>
