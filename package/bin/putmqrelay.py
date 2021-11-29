@@ -51,6 +51,12 @@ class PutMqRelay(StreamingCommand):
         **Description:** field name containing the MQ queue value to be used.''',
         require=True)
 
+    field_message_id = Option(
+        doc='''
+        **Syntax:** **field_message_id=****
+        **Description:** field name containing the message identifier to be published.''',
+        require=True)
+
     field_message = Option(
         doc='''
         **Syntax:** **field_message=****
@@ -69,7 +75,7 @@ class PutMqRelay(StreamingCommand):
         **Syntax:** **dedup=****
         **Description:** uses an hash based logic to prevent inserting records already known to the KVstore and avoid generating duplicates.
         Default is True.
-        If true, the hash used for the records is based on the raw message, the same hash cannot be added more than once.
+        If true, the hash used for the records is based on the message identifier and the raw message, the same hash cannot be added more than once.
         If false, use a random record for the key generation.
         .''',
         require=False, validate=validators.Match("dedup", r"^(True|False)$"))
@@ -222,6 +228,7 @@ class PutMqRelay(StreamingCommand):
             region = str(record[self.field_region])
             manager = str(record[self.field_manager])
             queue = str(record[self.field_queue])
+            message_id = str(record[self.field_message_id])
             message = str(record[self.field_message])
             if message.count('\n')>2:
                 multiline = 1
@@ -233,7 +240,8 @@ class PutMqRelay(StreamingCommand):
 
             # use the MD5 sum of the message as a unique key identifier
             if self.dedup == 'True':
-                keyrecord = hashlib.md5(message.encode('utf-8')).hexdigest()
+                md5content = str(message_id) + ":" + str(message)
+                keyrecord = hashlib.md5(md5content.encode('utf-8')).hexdigest()
             else:
                 keyrecord = random.getrandbits(128)
 
