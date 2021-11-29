@@ -1,5 +1,5 @@
-Deployment and configuration
-----------------------------
+Deployment and base configuration
+---------------------------------
 
 Deployment of the Add-on on the Search Head layer
 =================================================

@@ -26,6 +26,9 @@ The "Q" command has to be made available on the Splunk instances consuming the m
 Splunk API communication between the Heavy Forwarders and the SHC members
 #########################################################################
 
-To perform various actions related to the life-cycle of the application, every Splunk Heavy Forwarder needs to be able to reach the Splunk API on the SHC members.
+**To retrieve and handle the KVstore records, the Heavy Forwarders require to use a bearer token to be configured on the SHC.**
 
-The authentification is achieved using a bearer token approach, which is defined on the SHC side, configured in the Add-on configuration UI on the Heavy Forwarders and stored encrypted in the Splunk secure store.
+*For more information about bearer tokens:*
+- https://docs.splunk.com/Documentation/Splunk/latest/Security/UseAuthTokens
+
+Note: technically each forwarder can use a different bearer token which is configurable in the Add-on configuration UI of the HF, you may as well use the same bearer token on all Heavy Forwarder for that particular context.
