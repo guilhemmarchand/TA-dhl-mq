@@ -123,7 +123,7 @@
 | search $tk_ha_group_name$ $tk_ha_registered_consumer$
 | eval status=if(now()-mtime&gt;=10*60, "❌ offline", "✅ online") 
 | eval duration_since_last=tostring(now()-mtime, "duration"), mtime=strftime(mtime, "%c")
-| fields status, ha_group_name, consumer_name, duration_since_last, mtime</query>
+| fields status, ha_group_name, consumer_name, duration_since_last, mtime | sort 0 ha_group_name</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <refresh>1m</refresh>
