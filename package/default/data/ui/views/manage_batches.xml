@@ -387,7 +387,7 @@
                     <div class="modal-body">
                         <p>You do not have the required permissions to manage this batch, you need to be a member of the following Splunk role:
                         </p>
-                        <div class="modal-error-message" style="margin: 10px 0; margin-left: 10px; margin-right: 10px; padding: 10px; border-radius: 3px 3px 3px 3px; color: #D8000C; background-color: #FF6E6E;">
+                        <div class="modal-error-message" style="margin: 10px 0; margin-left: 10px; margin-right: 10px; padding: 10px; border-radius: 3px 3px 3px 3px; color: #D8000C; background-color: #FF6E6E; overflow-wrap: break-word;">
                             <p>error return message</p>
                         </div>
                     </div>
