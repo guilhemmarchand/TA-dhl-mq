@@ -5,7 +5,7 @@
 
 []
 owner = admin
-access = read : [ mqsubmission ], write : [ admin ]
+access = read : [ mqsubmission, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]
 export = system
 
 # KVstore collection
@@ -22,3 +22,24 @@ access = read : [ admin, mqsubmission ], write : [ admin, mqsubmission ]
 
 [collections/kv_mq_publish_batch_history]
 access = read : [ admin, mqsubmission ], write : [ admin, mqsubmission ]
+
+# These are technical KVstore collections used for HA purposes
+# Only the mqsubmission_superadmin role needs write privileges
+
+[transforms/mq_publish_ha_groups]
+access = read : [ admin, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]
+
+[collections/kv_mq_publish_ha_groups]
+access = read : [ admin, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]
+
+[transforms/mq_publish_local_cache_ha_groups]
+access = read : [ admin, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]
+
+[collections/kv_mq_publish_local_cache_ha_groups]
+access = read : [ admin, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]
+
+[transforms/mq_publish_ha_consumers_keepalive]
+access = read : [ admin, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]
+
+[collections/kv_mq_publish_ha_consumers_keepalive]
+access = read : [ admin, mqsubmission_superadmin ], write : [ admin, mqsubmission_superadmin ]

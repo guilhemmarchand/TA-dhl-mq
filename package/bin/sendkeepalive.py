@@ -115,7 +115,7 @@ class SendKeepAlive(GeneratingCommand):
                     sys.exit(0)
 
                 else:
-                    data = {'_time': time.time(), '_raw': "{\"response\": \"" + "keep alive sent successfully\"}"}
+                    data = {'_time': time.time(), '_raw': "{\"response\": \"" + "keep alive sent successfully, server response: " + str(response.status_code) + "\"}"}
                     yield data
                     sys.exit(0)
 
