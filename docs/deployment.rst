@@ -1,6 +1,15 @@
 Deployment and base configuration
 ---------------------------------
 
+Bearer Token requirements
+=========================
+
+**A bearer token must be created on the SHC which is going to be used by the Heavy Forwarders to perform their various operations on different KVstore collections part of the TA.**
+
+The bearer token must match a service account user that is a member of the builtin role:
+
+- ``mqsubmission_superadmin``
+
 Deployment of the Add-on on the Search Head layer
 =================================================
 
