@@ -86,3 +86,63 @@ Managing a batch pending from processing
 Managing a batch pending in temporary failure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+**When a batch is in temporary failure, this means that we already attempted at least once to send the messages to MQ, but the operation has failed at least once:**
+
+- A policy defined on the SHC says how many attempts will be processed for the same messages (default to 10 attempts)
+- When the maximal number of attempts for a given message has been reached, the status moves automatically to permanent failure
+- The manage batch UI show up with the latest error encountered while trying to send to MQ
+
+.. image:: img/manage_batches8.png
+   :alt: manage_batches8.png
+   :align: center
+   :width: 1200px
+
+**The Overview user interface will show as well the activity of the failing messages:**
+
+.. image:: img/manage_batches9.png
+   :alt: manage_batches9.png
+   :align: center
+   :width: 1200px
+
+**When a batch is in temporary failure, the manage batch UI allows the submitter to cancel the batch is necessary: (only users with the application submitter roles, or the super admin, can cancel a running job)**
+
+.. image:: img/manage_batches10.png
+   :alt: manage_batches10.png
+   :align: center
+   :width: 1200px
+
+Managing a batch pending in permanent failure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**When a batch of messages has reached the maximal number of attempts defined by the application policy, the status moves from temporary_failure to permanent_failure:**
+
+.. image:: img/manage_batches11.png
+   :alt: manage_batches11.png
+   :align: center
+   :width: 1200px
+
+**At this stage, the batch can no longer be canceled as it was canceled already by the system, and the manage batch UI would show the following message if user with approval roles tries to manage it:**
+
+.. image:: img/manage_batches11.png
+   :alt: manage_batches11.png
+   :align: center
+   :width: 1200px
+
+.. info:: The records will remain in the KVstore for a certain of time which is defined by the retention policy, when this period is over, records are permanently purged
+
+Managing a successful batch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**When a batch of messages was successfully sent to MQ, the batch appears as successful in the manage batch UI:**
+
+.. image:: img/manage_batches12.png
+   :alt: manage_batches12.png
+   :align: center
+   :width: 1200px
+
+**At this stage, the manage cannot be managed any longer as it has been processed already, the UI would show an informational message when accessing to it:**
+
+.. image:: img/manage_batches13.png
+   :alt: manage_batches13.png
+   :align: center
+   :width: 1200px
