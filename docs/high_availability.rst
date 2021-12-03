@@ -153,3 +153,55 @@ When the active manager goes offline
 - If for some reason, a given consumer cannot access to the SHC any longer, its own status is unknown and it will no longer process messages until the service is back again
 
 The whole process is entirely automated, from the discovery of the HA groups to the management of the HA group managers, no intervention is required at any point in time for the consuming process to be highly available on multiple Splunk Heavy Forwarders.
+
+Troubleshooting
+###############
+
+Running the send keepalive manually
+===================================
+
+If the Heavy Forwarder is reported to be offline, you can run directly the send keepalive report and check out the output of the search.
+
+If for example, the Heavy Forwarder cannot reach the Splunk SHC for any reason, authentication issues or network constraints for instance, the following would be reported:
+
+*In normal circumstances, the following will be reported:*
+
+.. image:: img/ha_group12.png
+   :alt: ha_group12.png
+   :align: center
+   :width: 1000px
+
+*If the connection is failing due to an authentication issue:*
+
+.. image:: img/ha_group13.png
+   :alt: ha_group13.png
+   :align: center
+   :width: 1000px
+
+*If the connection is failing due to a network issue or configuration issue in the target definition:*
+
+.. image:: img/ha_group14.png
+   :alt: ha_group14.png
+   :align: center
+   :width: 1000px
+
+*When the send keepalive is successful, a record will be created / updated concerning this specific Heavy Forwarder:*
+
+::
+
+   | inputlookup mq_publish_ha_consumers_keepalive | eval duration_since_last=tostring(now()-mtime, "duration"), mtime=strftime(mtime, "%c") | fields ha_group_name, consumer_name, duration_since_last, mtime
+
+.. image:: img/ha_group15.png
+   :alt: ha_group15.png
+   :align: center
+   :width: 1000px
+
+*In case of an issue, the out of the box alert and the High Availability dashboard allows to quickly idenfity the failing node, and perform the investigation steps:*
+
+.. image:: img/ha_group16.png
+   :alt: ha_group16.png
+   :align: center
+   :width: 1000px
+
+*If in a given HA group, all the consumer nodes are seen as offline, the group manager will be tagged as None, consumption of the messages is not possible until at least one node is back online:*
+

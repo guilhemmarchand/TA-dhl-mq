@@ -137,6 +137,7 @@
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development and build process</a></li>
 </ul>
 
             
@@ -345,6 +346,23 @@
 <p>The filters are translated to a proper Splunk search when accessing to the KVstore, and can be defined including of the fields available in the KVstore collection.</p>
 <p>Only a single active Heavy Forwarder should be consuming the records at the same time, this means the rule filters need to be unique on a per high availability group, using the various Metadata available in the KVstore.</p>
 <p>The two main Metadata are the “region” and the “appname”, however it is as well possible to add filters based on the queue managers or the queues by adding the relevant filters.</p>
+<p><strong>Example:</strong></p>
+<p>Let’s assume we address 4 MQ managers, deployed amonst 2 regions and serving 2 applications (1 per region), each region has two Splunk Heavy Forwarders for HA purposes, as follows:</p>
+<ul class="simple">
+<li><p>region1: EMEA, MQ managers: MQ1 / MQ2, application: buttercup-emea</p></li>
+<li><p>region2: AMER, MQ managers: MQ3 / MQ3, application: buttercup-emea</p></li>
+</ul>
+<p>The configuration of the HA group and the KVstore search filter would be:</p>
+<p><em>region1: EMEA</em></p>
+<ul class="simple">
+<li><p>HA group: <code class="docutils literal notranslate"><span class="pre">HA-GRP-EMEA</span></code></p></li>
+<li><p>KVstore filter: <code class="docutils literal notranslate"><span class="pre">(region=&quot;EMEA&quot;</span> <span class="pre">appname=&quot;buttercup-emea&quot;)</span></code></p></li>
+</ul>
+<p><em>region2: EMEA</em></p>
+<ul class="simple">
+<li><p>HA group: <code class="docutils literal notranslate"><span class="pre">HA-GRP-EMEA</span></code></p></li>
+<li><p>KVstore filter: <code class="docutils literal notranslate"><span class="pre">(region=&quot;EMEA&quot;</span> <span class="pre">appname=&quot;buttercup-emea&quot;)</span></code></p></li>
+</ul>
 </div>
 </div>
 </div>

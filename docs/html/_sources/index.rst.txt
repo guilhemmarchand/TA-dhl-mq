@@ -78,10 +78,11 @@ Troubleshoot:
 
    troubleshoot
 
-Versions and build history:
-===========================
+Versions, build history and development:
+========================================
 
 .. toctree::
    :maxdepth: 1
 
    releasenotes
+   development
