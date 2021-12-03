@@ -121,28 +121,28 @@ Managing a batch pending in permanent failure
    :align: center
    :width: 1200px
 
-**At this stage, the batch can no longer be canceled as it was canceled already by the system, and the manage batch UI would show the following message if user with approval roles tries to manage it:**
-
-.. image:: img/manage_batches11.png
-   :alt: manage_batches11.png
-   :align: center
-   :width: 1200px
-
-.. info:: The records will remain in the KVstore for a certain of time which is defined by the retention policy, when this period is over, records are permanently purged
-
-Managing a successful batch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**When a batch of messages was successfully sent to MQ, the batch appears as successful in the manage batch UI:**
+**At this stage, the batch can no longer be canceled as it was already by the system, and the manage batch UI would show the following message if user with approval roles tries to manage it:**
 
 .. image:: img/manage_batches12.png
    :alt: manage_batches12.png
    :align: center
    :width: 1200px
 
-**At this stage, the manage cannot be managed any longer as it has been processed already, the UI would show an informational message when accessing to it:**
+.. hint:: The records will remain in the KVstore for a certain of time which is defined by the retention policy, when this period is over, records are permanently purged
+
+Managing a successful batch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**When a batch of messages was successfully sent to MQ, the batch appears as successful in the manage batch UI:**
 
 .. image:: img/manage_batches13.png
    :alt: manage_batches13.png
+   :align: center
+   :width: 1200px
+
+**At this stage, the manage cannot be managed any longer as it has been processed already, the UI would show an informational message when accessing to it:**
+
+.. image:: img/manage_batches14.png
+   :alt: manage_batches14.png
    :align: center
    :width: 1200px
