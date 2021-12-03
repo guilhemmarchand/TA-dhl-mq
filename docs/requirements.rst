@@ -32,3 +32,9 @@ Splunk API communication between the Heavy Forwarders and the SHC members
 - https://docs.splunk.com/Documentation/Splunk/latest/Security/UseAuthTokens
 
 Note: technically each forwarder can use a different bearer token which is configurable in the Add-on configuration UI of the HF, you may as well use the same bearer token on all Heavy Forwarder for that particular context.
+
+**A bearer token must be created on the SHC which is going to be used by the Heavy Forwarders to perform their various operations on different KVstore collections part of the TA.**
+
+The bearer token must match a service account user that is a member of the builtin role:
+
+- ``mqsubmission_superadmin``

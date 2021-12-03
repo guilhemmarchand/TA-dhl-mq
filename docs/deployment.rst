@@ -209,3 +209,23 @@ The filters are translated to a proper Splunk search when accessing to the KVsto
 Only a single active Heavy Forwarder should be consuming the records at the same time, this means the rule filters need to be unique on a per high availability group, using the various Metadata available in the KVstore.
 
 The two main Metadata are the “region” and the “appname”, however it is as well possible to add filters based on the queue managers or the queues by adding the relevant filters.
+
+**Example:**
+
+Let's assume we address 4 MQ managers, deployed amonst 2 regions and serving 2 applications (1 per region), each region has two Splunk Heavy Forwarders for HA purposes, as follows:
+
+- region1: EMEA, MQ managers: MQ1 / MQ2, application: buttercup-emea
+- region2: AMER, MQ managers: MQ3 / MQ3, application: buttercup-emea
+
+The configuration of the HA group and the KVstore search filter would be:
+
+*region1: EMEA*
+
+- HA group: ``HA-GRP-EMEA``
+- KVstore filter: ``(region="EMEA" appname="buttercup-emea")``
+
+*region2: EMEA*
+
+- HA group: ``HA-GRP-EMEA``
+- KVstore filter: ``(region="EMEA" appname="buttercup-emea")``
+
