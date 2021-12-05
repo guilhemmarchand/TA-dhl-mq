@@ -1,8 +1,8 @@
 <form version="1.1" theme="dark" stylesheet="manage_batch_v100.css,css-loader/css-loader.css,notifybar/jquery.notifyBar.css" script="manage_batch_v104.js,multiselect_all.js">
   <label>MQ Manage Batches</label>
   <search id="baseSingle">
-    <query>| inputlookup mq_publish_backlog | eval key=_key | search status="$tk_showall$" AND ($tk_user_app_searchstring$)
-| stats min(ctime) as ctime, max(mtime) as mtime, values(user) as submitter, values(appname) as appname, values(manager) as manager, values(queue) as queue, values(region) as region, max(validation_required) as validation_required, count by status, batch_uuid</query>
+    <query>| inputlookup mq_publish_backlog | eval key=_key | search ($tk_user_app_searchstring$)
+| stats values(status) as status, min(ctime) as ctime, max(mtime) as mtime, values(user) as submitter, values(appname) as appname, values(manager) as manager, values(queue) as queue, values(region) as region, max(validation_required) as validation_required, count by batch_uuid | `eval_status_batch` | search status="$tk_showall$"</query>
     <earliest>-5m</earliest>
     <latest>now</latest>
   </search>
