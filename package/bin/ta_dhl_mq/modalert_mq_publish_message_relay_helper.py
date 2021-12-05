@@ -75,6 +75,7 @@ def process_event(helper, *args, **kwargs):
     import time
     import requests
     import socket
+    import json
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -322,8 +323,7 @@ def process_event(helper, *args, **kwargs):
 
         elif str(mqpassthrough) == "disabled":
 
-            # local cache service
-            ha_group_collection_name = "kv_mq_publish_local_cache_ha_groups"
+            # local service
             service = client.connect(
                 token=str(session_key),
                 owner="nobody",
@@ -331,8 +331,33 @@ def process_event(helper, *args, **kwargs):
                 host="localhost",
                 port=splunkd_port
             )
+
+            # local cache service
+            ha_group_collection_name = "kv_mq_publish_local_cache_ha_groups"
             ha_group_collection = service.kvstore[ha_group_collection_name]
 
+            # local cache record submitted
+            local_cache_records_submitted_name = "kv_mq_publish_local_cache_records_submitted"
+            local_cache_records_submitted = service.kvstore[local_cache_records_submitted_name]
+
+            # check this record was processed already, this suppressed any risk of submitted a duplicated message
+            query_string = '{ "_key": "' + str(key) + '" }'
+            submitted_record = None
+            try:
+                submitted_record = local_cache_records_submitted.data.query(query=str(query_string))
+            except Exception as e:
+                submitted_record = None
+
+            if submitted_record:
+                logmsg = "This record: " + str(submitted_record) + " was processed already, we will not generate a duplicated message."
+                helper.log_info(logmsg)
+                helper.log_debug("submitted_record={}".format(submitted_record))
+                return 0
+            else:
+                logmsg = "This record with key: " + str(key) + " was not found in the local cache collection: " \
+                    + str(local_cache_records_submitted_name) + ", assuming it was not procedded already and it cannot be a duplicate."
+                helper.log_debug(logmsg)
+            
             # get the existing record, if any
             query_string = '{ "ha_group_name": "' + str(ha_group) + '" }'
             record = None
@@ -466,6 +491,13 @@ def process_event(helper, *args, **kwargs):
                                 + ", user=" + str(user) \
                                 + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
                                 helper.log_info(logmsg)
+
+                                # insert the successful record Metadata in the local submitted records collection
+                                try:
+                                    local_cache_records_submitted.data.insert(json.dumps({"_key": str(key), "ctime": str(time.time()), "status": "success"}))
+                                except Exception as e:
+                                    logmsg = "Kvstore submitted record insertion to the collection " + str(local_cache_records_submitted_name) + " has failed with exception: " + str(e)
+                                    helper.log_error(logmsg)
 
                                 # update the record
                                 search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"success\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
