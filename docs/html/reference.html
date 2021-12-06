@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Index &mdash; TA-dhl-mq 1 documentation</title>
+  <title>Administrative Reference matrix &mdash; TA-dhl-mq 1 documentation</title>
   
 
   
@@ -40,8 +40,10 @@
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
-    <link rel="index" title="Index" href="#" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User guide" href="userguide.html" />
+    <link rel="prev" title="Role Based Access Control (RBAC)" href="rbac.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -97,12 +99,21 @@
 <li class="toctree-l1"><a class="reference internal" href="compatibility.html">Compatibility</a></li>
 <li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
 </ul>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment and base configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">MQ managers Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="high_availability.html">High Availability</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rbac.html">Role Based Access Control (RBAC)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference.html">Administrative Reference matrix</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Administrative Reference matrix</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#alerts-and-reports">Alerts and reports</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#scheduled-alerts-reference">Scheduled alerts reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-relay-publishing">DHL MQ messages publishing - relay publishing</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="userguide.html">User guide</a></li>
@@ -158,11 +169,13 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Index</li>
+      <li>Administrative Reference matrix</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
+          
+            <a href="_sources/reference.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -175,11 +188,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-
-<h1 id="index">Index</h1>
-
-<div class="genindex-jumpbox">
- 
+  <div class="section" id="administrative-reference-matrix">
+<h1>Administrative Reference matrix<a class="headerlink" href="#administrative-reference-matrix" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="alerts-and-reports">
+<h2>Alerts and reports<a class="headerlink" href="#alerts-and-reports" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="scheduled-alerts-reference">
+<h3>Scheduled alerts reference<a class="headerlink" href="#scheduled-alerts-reference" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="dhl-mq-messages-publishing-relay-publishing">
+<h4>DHL MQ messages publishing - relay publishing<a class="headerlink" href="#dhl-mq-messages-publishing-relay-publishing" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is the main modular alert which handles submission to MQ for:</strong></p>
+<ul class="simple">
+<li><p>Batches of multi-line messages (the field <code class="docutils literal notranslate"><span class="pre">multiline</span></code> in the KVstore contains the boolean with value <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
+<li><p>Re-attempt for submission failures for both single-line and multi-line messages</p></li>
+</ul>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This alert when running on the SHC will maintain the KVstore records, especially it will purge old records when their expiration is reached</p></li>
+<li><p>HFs: This alert performs the submission to MQ</p></li>
+</ul>
+</div>
+</div>
+</div>
 </div>
 
 
@@ -187,6 +216,10 @@
            
           </div>
           <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="userguide.html" class="btn btn-neutral float-right" title="User guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="rbac.html" class="btn btn-neutral float-left" title="Role Based Access Control (RBAC)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 

@@ -61,6 +61,7 @@ Deployment and configuration:
    configuration
    high_availability
    rbac
+   reference
 
 User guide:
 ===========
