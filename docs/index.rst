@@ -70,14 +70,6 @@ User guide:
 
    userguide
 
-Troubleshoot:
-=============
-
-.. toctree::
-   :maxdepth: 1
-
-   troubleshoot
-
 Versions, build history and development:
 ========================================
 

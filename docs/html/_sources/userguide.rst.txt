@@ -67,6 +67,55 @@ Sending a real batch of messages would look like:
 
 At this stage, a batch has been generated and is pending from approval. (see the next section)
 
+Automated quality control performed by the putmqrelay command
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``putmqrelay`` command automatically performs quality control to verify that the operation requested was successful, in some occasions it is possible that the command renders a failure status such as:
+
+.. image:: img/putmqrelay3.png
+   :alt: putmqrelay3.png
+   :align: center
+   :width: 1200px
+
+**A failure status can happen for some technical reasons such as:**
+
+- If dedup is true, and there are duplicated messages submitted to the putmqrelay command (so the count between result_count and processed_count differs)
+- If for any reason, the kvstore_count which is the total number of messages returned by the central KVstore did not return in time the expected number of message, this can happen for example if Splunk is heavily loaded and the KVstore insertion took too long
+- For any other unexpected technical condition that could happen on the Splunk side
+
+In such as case, you need to verify using the MQ Manage batches user interface that the same number of messages is shown in the count as the one that was submitted during the ``putmqrelay`` command call.
+
+.. hint:: A failure statue returned by the ``putmqrelay`` command is not a hard stop, if the count shows the volume expected in MQ manage batches, you are good to go, this is an additional safety quality control.
+
+Multiline messages versus singleline messages
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Depending on the type of the messages submitted, the life cycle differs:**
+
+- If all submitted messages are detected as ``singleline-messages``, these messages will very quickly processed by batch via the q command and a report running on the Splunk Heavy Forwarders
+- If the submitted messages contain ``multiline-messages``, these cannot be processed by batch and have to be handled via a longer process which handles messages on a per message basis
+- If messages that were submitted initially were single line messages, **BUT** the initial submission failed for a technical reason, the re-attempt goes through the same process as the ``multiline-message`` and will take longer than the initial submission
+
+Initial singleline batch submission
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+**When a batch of single line messages is submitted and validated, the Splunk Heavy Forwarders will load these messages using a scheduled report called:**
+
+- ``DHL MQ messages publishing - batch relay publishing for singleline messages``
+
+This reports loads a custom command called ``getmqbatch`` on the Splunk Heavy Forwarders, and proceed messages by batch of 10000 messages in a single operation.
+
+If the messages failed to be submitted for any technical reasons, the re-attempt will be proceeded by the alert handling multiline messages and re-attempts.
+
+Re-attempt after failures of single-line messages or multi-line messages submission
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+**When a batch of multiline messages is submitted and validated, the Splunk Heavy Forwarders will load these messages using a modular alert action called:**
+
+- ``DHL MQ messages publishing - relay publishing``
+
+This alert loads a Python based backend which performs the submission operation to IBM MQ, on a per message basis which takes much longer than processing the messages by batch.
+
 Managing MQ submission batches
 ==============================
 
@@ -231,3 +280,64 @@ MQ Overview dashboard
 - See all applications and all messages if you are an administrator, or a member of the MQ super admin role
 - See all applications and messages for the list of applications you are a member of
 
+**The dashboard show all revelant information, activity and shortcut to all pieces of needed information, such as:**
+
+- The total number of messages stored in the KVstore collection
+- The number of successfully submitted messages
+- The number of messages in pending status
+- The number of batches pending for approval
+- The number of messages currently in temporary_failure
+- The number of messages currently in permanent_failure
+- The overview over time of the same main KPIs
+
+.. hint:: **Active drilldown in the dashboard**
+
+   - You can click on the single forms of the dashboard to automatically access to the proper information
+   - For example, if you click on the batch pending single number, this opens for you the MQ manage batch UI filtering on the pending for approval batches
+
+MQ Manage batches
+^^^^^^^^^^^^^^^^^
+
+**The MQ manage batch user interface summaries this in a more user friendly way, in the meaning that you get the immediate understanding of the status of the batches, and the errors encounteded, if any:**
+
+.. image:: img/verify_status2.png
+   :alt: verify_status2.png
+   :align: center
+   :width: 1200px
+
+**The user interface will show a given batch as follows:**
+
+- If there are any messages that are pending in the batch, the batch will show the status ``pending_processing``
+- If there are any messages that are in temporary_failure, the batch will show the status ``temporary_failure``
+- If all messages from the batch have been successfully sent, the batch will show the status ``success``
+- If all messages from the batch have reached their final attempt of submission, the batch will show the status ``permanent_failure``
+- If the batch was canceled on purpose by an approver, the batch will show the status ``canceled``
+
+Processing logs
+^^^^^^^^^^^^^^^
+
+**The application logs every single action that is performed, either when user submit or validate messages, or when the system itself is processing the messages, shortcuts are made available in the application navigation bar:**
+
+.. image:: img/verify_status3.png
+   :alt: verify_status3.png
+   :align: center
+   :width: 1200px
+
+**For example, failures would be easily visible in the logs:**
+
+.. image:: img/verify_status4.png
+   :alt: verify_status4.png
+   :align: center
+   :width: 1200px
+
+Automated alerts
+^^^^^^^^^^^^^^^^
+
+**An alert is provided out of the box in the application which allows to automatically notifies the approver if something went wrong on the submitted and validated batches:**
+
+.. image:: img/verify_status5.png
+   :alt: verify_status5.png
+   :align: center
+   :width: 1200px
+
+This alert can easily be updated to use any third party integration available to Splunk, and generates alerts or tickets in your corporate systems such as Slack, Teams, Jira, etc.

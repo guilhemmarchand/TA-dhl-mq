@@ -86,3 +86,166 @@ ucc-gen and updating the Technical Add-on
 - the content of the ``TA-dhl-mq`` directory is the uncompress content from the generated package (and is ignored in Git on purpose too)
 
 - the tgz file is the package to be released in GitHub, and deployed to Splunk
+
+Developping with Docker
+=======================
+
+**For easy and modern developping purposes, one can easily bootstrap an environment including Splunk and MQ-Series using docker, for your convenience, a docker-compose.yml example is shared as follows:**
+
+*docker-compose.yml, adapt to your needs, create or remove local storage references as needed:*
+
+::
+
+    version: "3.8"
+
+    # services
+    services:
+    # Splunk
+    splunk:
+        image: splunk/splunk:latest
+        hostname: splunk
+        ports:
+        - "8000:8000"
+        - "8089:8089"
+        - "9997:9997"
+        - "8088:8088"
+        environment:
+        SPLUNK_START_ARGS: "--accept-license"
+        SPLUNK_PASSWORD: "ch@ngeM3"
+        volumes:
+        - ./splunk/TA-config:/opt/splunk/etc/apps/TA-config
+        - ./mqc:/tmp/mqc
+
+    # Splunk HF relay
+    splunk_hf:
+        image: splunk/splunk:latest
+        hostname: splunk_hf
+        ports:
+        - "8001:8000"
+        - "8090:8089"
+        environment:
+        SPLUNK_START_ARGS: "--accept-license"
+        SPLUNK_PASSWORD: "ch@ngeM3"
+        volumes:
+        - ./splunk/TA-config-hf:/opt/splunk/etc/apps/TA-config-hf
+        - ./mqc:/tmp/mqc
+        - ./mqgem:/opt/mqgem
+        - ./samples:/tmp/samples
+
+    # Splunk HF relay
+    splunk_hf2:
+        image: splunk/splunk:latest
+        hostname: splunk_hf2
+        ports:
+        - "8002:8000"
+        - "8091:8089"
+        environment:
+        SPLUNK_START_ARGS: "--accept-license"
+        SPLUNK_PASSWORD: "ch@ngeM3"
+        volumes:
+        - ./splunk/TA-config-hf:/opt/splunk/etc/apps/TA-config-hf
+        - ./mqc:/tmp/mqc
+        - ./mqgem:/opt/mqgem
+        - ./samples:/tmp/samples
+
+    # Splunk HF relay
+    splunk_hf3:
+        image: splunk/splunk:latest
+        hostname: splunk_hf3
+        ports:
+        - "8003:8000"
+        - "8092:8089"
+        environment:
+        SPLUNK_START_ARGS: "--accept-license"
+        SPLUNK_PASSWORD: "ch@ngeM3"
+        volumes:
+        - ./splunk/TA-config-hf:/opt/splunk/etc/apps/TA-config-hf
+        - ./mqc:/tmp/mqc
+        - ./mqgem:/opt/mqgem
+        - ./samples:/tmp/samples
+
+    # Splunk HF relay
+    splunk_hf4:
+        image: splunk/splunk:latest
+        hostname: splunk_hf4
+        ports:
+        - "8004:8000"
+        - "8093:8089"
+        environment:
+        SPLUNK_START_ARGS: "--accept-license"
+        SPLUNK_PASSWORD: "ch@ngeM3"
+        volumes:
+        - ./splunk/TA-config-hf:/opt/splunk/etc/apps/TA-config-hf
+        - ./mqc:/tmp/mqc
+        - ./mqgem:/opt/mqgem
+        - ./samples:/tmp/samples
+
+    # IBM MQ
+    mq1:
+        image: ibmcom/mq:latest
+        hostname: splunk
+        ports:
+        - "1414:1414"
+        - "9443:9443"
+        environment:
+        LICENSE: "accept"
+        MQ_QMGR_NAME: "QM1"
+        MQ_ADMIN_PASSWORD: "passw0rd"
+        # If the following is set, authentication will be required
+        #MQ_APP_PASSWORD: "passw0rd"
+        volumes:
+        - "qm1data:/mnt/mqm:rw"
+
+    # IBM MQ2
+    mq2:
+        image: ibmcom/mq:latest
+        hostname: splunk
+        ports:
+        - "1415:1414"
+        - "9444:9443"
+        environment:
+        LICENSE: "accept"
+        MQ_QMGR_NAME: "QM2"
+        MQ_ADMIN_PASSWORD: "passw0rd"
+        # If the following is set, authentication will be required
+        #MQ_APP_PASSWORD: "passw0rd"
+        volumes:
+        - "qm2data:/mnt/mqm:rw"
+
+    # IBM MQ3
+    mq3:
+        image: ibmcom/mq:latest
+        hostname: splunk
+        ports:
+        - "1416:1414"
+        - "9445:9443"
+        environment:
+        LICENSE: "accept"
+        MQ_QMGR_NAME: "QM3"
+        MQ_ADMIN_PASSWORD: "passw0rd"
+        # If the following is set, authentication will be required
+        #MQ_APP_PASSWORD: "passw0rd"
+        volumes:
+        - "qm3data:/mnt/mqm:rw"
+
+    # IBM MQ4
+    mq4:
+        image: ibmcom/mq:latest
+        hostname: splunk
+        ports:
+        - "1417:1414"
+        - "9446:9443"
+        environment:
+        LICENSE: "accept"
+        MQ_QMGR_NAME: "QM4"
+        MQ_ADMIN_PASSWORD: "passw0rd"
+        # If the following is set, authentication will be required
+        #MQ_APP_PASSWORD: "passw0rd"
+        volumes:
+        - "qm4data:/mnt/mqm:rw"
+
+    volumes:
+    qm1data: {}
+    qm2data: {}
+    qm3data: {}
+    qm4data: {}

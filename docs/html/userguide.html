@@ -42,7 +42,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Troubleshoot" href="troubleshoot.html" />
+    <link rel="next" title="Release notes" href="releasenotes.html" />
     <link rel="prev" title="Role Based Access Control (RBAC)" href="rbac.html" /> 
 </head>
 
@@ -109,6 +109,12 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">User guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#submitting-messages-to-ibm-mq-series-from-splunk">Submitting messages to IBM MQ Series from Splunk</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#sending-messages-to-ibm-mqseries-with-the-putmqrelay-command">Sending messages to IBM MQSeries with the putmqrelay command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#automated-quality-control-performed-by-the-putmqrelay-command">Automated quality control performed by the putmqrelay command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiline-messages-versus-singleline-messages">Multiline messages versus singleline messages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#initial-singleline-batch-submission">Initial singleline batch submission</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#re-attempt-after-failures-of-single-line-messages-or-multi-line-messages-submission">Re-attempt after failures of single-line messages or multi-line messages submission</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#managing-mq-submission-batches">Managing MQ submission batches</a><ul>
@@ -122,13 +128,13 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#verifying-the-status-of-the-mq-submission">Verifying the status of the MQ submission</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mq-overview-dashboard">MQ Overview dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mq-manage-batches">MQ Manage batches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#processing-logs">Processing logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#automated-alerts">Automated alerts</a></li>
 </ul>
 </li>
 </ul>
 </li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="troubleshoot.html">Troubleshoot</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
@@ -248,6 +254,48 @@
 <a class="reference internal image-reference" href="_images/putmqrelay2.png"><img alt="putmqrelay2.png" class="align-center" src="_images/putmqrelay2.png" style="width: 1200px;" /></a>
 <p>At this stage, a batch has been generated and is pending from approval. (see the next section)</p>
 </div>
+<div class="section" id="automated-quality-control-performed-by-the-putmqrelay-command">
+<h3>Automated quality control performed by the putmqrelay command<a class="headerlink" href="#automated-quality-control-performed-by-the-putmqrelay-command" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">putmqrelay</span></code> command automatically performs quality control to verify that the operation requested was successful, in some occasions it is possible that the command renders a failure status such as:</p>
+<a class="reference internal image-reference" href="_images/putmqrelay3.png"><img alt="putmqrelay3.png" class="align-center" src="_images/putmqrelay3.png" style="width: 1200px;" /></a>
+<p><strong>A failure status can happen for some technical reasons such as:</strong></p>
+<ul class="simple">
+<li><p>If dedup is true, and there are duplicated messages submitted to the putmqrelay command (so the count between result_count and processed_count differs)</p></li>
+<li><p>If for any reason, the kvstore_count which is the total number of messages returned by the central KVstore did not return in time the expected number of message, this can happen for example if Splunk is heavily loaded and the KVstore insertion took too long</p></li>
+<li><p>For any other unexpected technical condition that could happen on the Splunk side</p></li>
+</ul>
+<p>In such as case, you need to verify using the MQ Manage batches user interface that the same number of messages is shown in the count as the one that was submitted during the <code class="docutils literal notranslate"><span class="pre">putmqrelay</span></code> command call.</p>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>A failure statue returned by the <code class="docutils literal notranslate"><span class="pre">putmqrelay</span></code> command is not a hard stop, if the count shows the volume expected in MQ manage batches, you are good to go, this is an additional safety quality control.</p>
+</div>
+</div>
+<div class="section" id="multiline-messages-versus-singleline-messages">
+<h3>Multiline messages versus singleline messages<a class="headerlink" href="#multiline-messages-versus-singleline-messages" title="Permalink to this headline">¶</a></h3>
+<p><strong>Depending on the type of the messages submitted, the life cycle differs:</strong></p>
+<ul class="simple">
+<li><p>If all submitted messages are detected as <code class="docutils literal notranslate"><span class="pre">singleline-messages</span></code>, these messages will very quickly processed by batch via the q command and a report running on the Splunk Heavy Forwarders</p></li>
+<li><p>If the submitted messages contain <code class="docutils literal notranslate"><span class="pre">multiline-messages</span></code>, these cannot be processed by batch and have to be handled via a longer process which handles messages on a per message basis</p></li>
+<li><p>If messages that were submitted initially were single line messages, <strong>BUT</strong> the initial submission failed for a technical reason, the re-attempt goes through the same process as the <code class="docutils literal notranslate"><span class="pre">multiline-message</span></code> and will take longer than the initial submission</p></li>
+</ul>
+<div class="section" id="initial-singleline-batch-submission">
+<h4>Initial singleline batch submission<a class="headerlink" href="#initial-singleline-batch-submission" title="Permalink to this headline">¶</a></h4>
+<p><strong>When a batch of single line messages is submitted and validated, the Splunk Heavy Forwarders will load these messages using a scheduled report called:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DHL</span> <span class="pre">MQ</span> <span class="pre">messages</span> <span class="pre">publishing</span> <span class="pre">-</span> <span class="pre">batch</span> <span class="pre">relay</span> <span class="pre">publishing</span> <span class="pre">for</span> <span class="pre">singleline</span> <span class="pre">messages</span></code></p></li>
+</ul>
+<p>This reports loads a custom command called <code class="docutils literal notranslate"><span class="pre">getmqbatch</span></code> on the Splunk Heavy Forwarders, and proceed messages by batch of 10000 messages in a single operation.</p>
+<p>If the messages failed to be submitted for any technical reasons, the re-attempt will be proceeded by the alert handling multiline messages and re-attempts.</p>
+</div>
+<div class="section" id="re-attempt-after-failures-of-single-line-messages-or-multi-line-messages-submission">
+<h4>Re-attempt after failures of single-line messages or multi-line messages submission<a class="headerlink" href="#re-attempt-after-failures-of-single-line-messages-or-multi-line-messages-submission" title="Permalink to this headline">¶</a></h4>
+<p><strong>When a batch of multiline messages is submitted and validated, the Splunk Heavy Forwarders will load these messages using a modular alert action called:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DHL</span> <span class="pre">MQ</span> <span class="pre">messages</span> <span class="pre">publishing</span> <span class="pre">-</span> <span class="pre">relay</span> <span class="pre">publishing</span></code></p></li>
+</ul>
+<p>This alert loads a Python based backend which performs the submission operation to IBM MQ, on a per message basis which takes much longer than processing the messages by batch.</p>
+</div>
+</div>
 </div>
 <div class="section" id="managing-mq-submission-batches">
 <h2>Managing MQ submission batches<a class="headerlink" href="#managing-mq-submission-batches" title="Permalink to this headline">¶</a></h2>
@@ -343,6 +391,50 @@
 <li><p>See all applications and all messages if you are an administrator, or a member of the MQ super admin role</p></li>
 <li><p>See all applications and messages for the list of applications you are a member of</p></li>
 </ul>
+<p><strong>The dashboard show all revelant information, activity and shortcut to all pieces of needed information, such as:</strong></p>
+<ul class="simple">
+<li><p>The total number of messages stored in the KVstore collection</p></li>
+<li><p>The number of successfully submitted messages</p></li>
+<li><p>The number of messages in pending status</p></li>
+<li><p>The number of batches pending for approval</p></li>
+<li><p>The number of messages currently in temporary_failure</p></li>
+<li><p>The number of messages currently in permanent_failure</p></li>
+<li><p>The overview over time of the same main KPIs</p></li>
+</ul>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p><strong>Active drilldown in the dashboard</strong></p>
+<ul class="simple">
+<li><p>You can click on the single forms of the dashboard to automatically access to the proper information</p></li>
+<li><p>For example, if you click on the batch pending single number, this opens for you the MQ manage batch UI filtering on the pending for approval batches</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="mq-manage-batches">
+<h3>MQ Manage batches<a class="headerlink" href="#mq-manage-batches" title="Permalink to this headline">¶</a></h3>
+<p><strong>The MQ manage batch user interface summaries this in a more user friendly way, in the meaning that you get the immediate understanding of the status of the batches, and the errors encounteded, if any:</strong></p>
+<a class="reference internal image-reference" href="_images/verify_status2.png"><img alt="verify_status2.png" class="align-center" src="_images/verify_status2.png" style="width: 1200px;" /></a>
+<p><strong>The user interface will show a given batch as follows:</strong></p>
+<ul class="simple">
+<li><p>If there are any messages that are pending in the batch, the batch will show the status <code class="docutils literal notranslate"><span class="pre">pending_processing</span></code></p></li>
+<li><p>If there are any messages that are in temporary_failure, the batch will show the status <code class="docutils literal notranslate"><span class="pre">temporary_failure</span></code></p></li>
+<li><p>If all messages from the batch have been successfully sent, the batch will show the status <code class="docutils literal notranslate"><span class="pre">success</span></code></p></li>
+<li><p>If all messages from the batch have reached their final attempt of submission, the batch will show the status <code class="docutils literal notranslate"><span class="pre">permanent_failure</span></code></p></li>
+<li><p>If the batch was canceled on purpose by an approver, the batch will show the status <code class="docutils literal notranslate"><span class="pre">canceled</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="processing-logs">
+<h3>Processing logs<a class="headerlink" href="#processing-logs" title="Permalink to this headline">¶</a></h3>
+<p><strong>The application logs every single action that is performed, either when user submit or validate messages, or when the system itself is processing the messages, shortcuts are made available in the application navigation bar:</strong></p>
+<a class="reference internal image-reference" href="_images/verify_status3.png"><img alt="verify_status3.png" class="align-center" src="_images/verify_status3.png" style="width: 1200px;" /></a>
+<p><strong>For example, failures would be easily visible in the logs:</strong></p>
+<a class="reference internal image-reference" href="_images/verify_status4.png"><img alt="verify_status4.png" class="align-center" src="_images/verify_status4.png" style="width: 1200px;" /></a>
+</div>
+<div class="section" id="automated-alerts">
+<h3>Automated alerts<a class="headerlink" href="#automated-alerts" title="Permalink to this headline">¶</a></h3>
+<p><strong>An alert is provided out of the box in the application which allows to automatically notifies the approver if something went wrong on the submitted and validated batches:</strong></p>
+<a class="reference internal image-reference" href="_images/verify_status5.png"><img alt="verify_status5.png" class="align-center" src="_images/verify_status5.png" style="width: 1200px;" /></a>
+<p>This alert can easily be updated to use any third party integration available to Splunk, and generates alerts or tickets in your corporate systems such as Slack, Teams, Jira, etc.</p>
 </div>
 </div>
 </div>
@@ -353,7 +445,7 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="troubleshoot.html" class="btn btn-neutral float-right" title="Troubleshoot" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="releasenotes.html" class="btn btn-neutral float-right" title="Release notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="rbac.html" class="btn btn-neutral float-left" title="Role Based Access Control (RBAC)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

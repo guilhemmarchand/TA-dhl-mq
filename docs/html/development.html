@@ -121,6 +121,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#ucc-gen-and-updating-the-technical-add-on">ucc-gen and updating the Technical Add-on</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#developping-with-docker">Developping with Docker</a></li>
 </ul>
 </li>
 </ul>
@@ -260,6 +261,166 @@
 <li><p>the content of the <code class="docutils literal notranslate"><span class="pre">TA-dhl-mq</span></code> directory is the uncompress content from the generated package (and is ignored in Git on purpose too)</p></li>
 <li><p>the tgz file is the package to be released in GitHub, and deployed to Splunk</p></li>
 </ul>
+</div>
+</div>
+<div class="section" id="developping-with-docker">
+<h2>Developping with Docker<a class="headerlink" href="#developping-with-docker" title="Permalink to this headline">¶</a></h2>
+<p><strong>For easy and modern developping purposes, one can easily bootstrap an environment including Splunk and MQ-Series using docker, for your convenience, a docker-compose.yml example is shared as follows:</strong></p>
+<p><em>docker-compose.yml, adapt to your needs, create or remove local storage references as needed:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">version</span><span class="p">:</span> <span class="s2">&quot;3.8&quot;</span>
+
+<span class="c1"># services</span>
+<span class="n">services</span><span class="p">:</span>
+<span class="c1"># Splunk</span>
+<span class="n">splunk</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">splunk</span><span class="o">/</span><span class="n">splunk</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;8000:8000&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;8089:8089&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;9997:9997&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;8088:8088&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">SPLUNK_START_ARGS</span><span class="p">:</span> <span class="s2">&quot;--accept-license&quot;</span>
+    <span class="n">SPLUNK_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;ch@ngeM3&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">splunk</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">splunk</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqc</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">mqc</span>
+
+<span class="c1"># Splunk HF relay</span>
+<span class="n">splunk_hf</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">splunk</span><span class="o">/</span><span class="n">splunk</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk_hf</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;8001:8000&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;8090:8089&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">SPLUNK_START_ARGS</span><span class="p">:</span> <span class="s2">&quot;--accept-license&quot;</span>
+    <span class="n">SPLUNK_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;ch@ngeM3&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">splunk</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">splunk</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqc</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">mqc</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqgem</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">mqgem</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">samples</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">samples</span>
+
+<span class="c1"># Splunk HF relay</span>
+<span class="n">splunk_hf2</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">splunk</span><span class="o">/</span><span class="n">splunk</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk_hf2</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;8002:8000&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;8091:8089&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">SPLUNK_START_ARGS</span><span class="p">:</span> <span class="s2">&quot;--accept-license&quot;</span>
+    <span class="n">SPLUNK_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;ch@ngeM3&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">splunk</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">splunk</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqc</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">mqc</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqgem</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">mqgem</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">samples</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">samples</span>
+
+<span class="c1"># Splunk HF relay</span>
+<span class="n">splunk_hf3</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">splunk</span><span class="o">/</span><span class="n">splunk</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk_hf3</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;8003:8000&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;8092:8089&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">SPLUNK_START_ARGS</span><span class="p">:</span> <span class="s2">&quot;--accept-license&quot;</span>
+    <span class="n">SPLUNK_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;ch@ngeM3&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">splunk</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">splunk</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqc</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">mqc</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqgem</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">mqgem</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">samples</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">samples</span>
+
+<span class="c1"># Splunk HF relay</span>
+<span class="n">splunk_hf4</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">splunk</span><span class="o">/</span><span class="n">splunk</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk_hf4</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;8004:8000&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;8093:8089&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">SPLUNK_START_ARGS</span><span class="p">:</span> <span class="s2">&quot;--accept-license&quot;</span>
+    <span class="n">SPLUNK_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;ch@ngeM3&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">splunk</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">splunk</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">TA</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="n">hf</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqc</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">mqc</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">mqgem</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">mqgem</span>
+    <span class="o">-</span> <span class="o">./</span><span class="n">samples</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">samples</span>
+
+<span class="c1"># IBM MQ</span>
+<span class="n">mq1</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">ibmcom</span><span class="o">/</span><span class="n">mq</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;1414:1414&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;9443:9443&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">LICENSE</span><span class="p">:</span> <span class="s2">&quot;accept&quot;</span>
+    <span class="n">MQ_QMGR_NAME</span><span class="p">:</span> <span class="s2">&quot;QM1&quot;</span>
+    <span class="n">MQ_ADMIN_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;passw0rd&quot;</span>
+    <span class="c1"># If the following is set, authentication will be required</span>
+    <span class="c1">#MQ_APP_PASSWORD: &quot;passw0rd&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;qm1data:/mnt/mqm:rw&quot;</span>
+
+<span class="c1"># IBM MQ2</span>
+<span class="n">mq2</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">ibmcom</span><span class="o">/</span><span class="n">mq</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;1415:1414&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;9444:9443&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">LICENSE</span><span class="p">:</span> <span class="s2">&quot;accept&quot;</span>
+    <span class="n">MQ_QMGR_NAME</span><span class="p">:</span> <span class="s2">&quot;QM2&quot;</span>
+    <span class="n">MQ_ADMIN_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;passw0rd&quot;</span>
+    <span class="c1"># If the following is set, authentication will be required</span>
+    <span class="c1">#MQ_APP_PASSWORD: &quot;passw0rd&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;qm2data:/mnt/mqm:rw&quot;</span>
+
+<span class="c1"># IBM MQ3</span>
+<span class="n">mq3</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">ibmcom</span><span class="o">/</span><span class="n">mq</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;1416:1414&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;9445:9443&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">LICENSE</span><span class="p">:</span> <span class="s2">&quot;accept&quot;</span>
+    <span class="n">MQ_QMGR_NAME</span><span class="p">:</span> <span class="s2">&quot;QM3&quot;</span>
+    <span class="n">MQ_ADMIN_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;passw0rd&quot;</span>
+    <span class="c1"># If the following is set, authentication will be required</span>
+    <span class="c1">#MQ_APP_PASSWORD: &quot;passw0rd&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;qm3data:/mnt/mqm:rw&quot;</span>
+
+<span class="c1"># IBM MQ4</span>
+<span class="n">mq4</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">ibmcom</span><span class="o">/</span><span class="n">mq</span><span class="p">:</span><span class="n">latest</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="n">splunk</span>
+    <span class="n">ports</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;1417:1414&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;9446:9443&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+    <span class="n">LICENSE</span><span class="p">:</span> <span class="s2">&quot;accept&quot;</span>
+    <span class="n">MQ_QMGR_NAME</span><span class="p">:</span> <span class="s2">&quot;QM4&quot;</span>
+    <span class="n">MQ_ADMIN_PASSWORD</span><span class="p">:</span> <span class="s2">&quot;passw0rd&quot;</span>
+    <span class="c1"># If the following is set, authentication will be required</span>
+    <span class="c1">#MQ_APP_PASSWORD: &quot;passw0rd&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="s2">&quot;qm4data:/mnt/mqm:rw&quot;</span>
+
+<span class="n">volumes</span><span class="p">:</span>
+<span class="n">qm1data</span><span class="p">:</span> <span class="p">{}</span>
+<span class="n">qm2data</span><span class="p">:</span> <span class="p">{}</span>
+<span class="n">qm3data</span><span class="p">:</span> <span class="p">{}</span>
+<span class="n">qm4data</span><span class="p">:</span> <span class="p">{}</span>
+</pre></div>
 </div>
 </div>
 </div>
