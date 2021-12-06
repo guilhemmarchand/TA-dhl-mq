@@ -96,7 +96,7 @@ class PurgeLocalCache(GeneratingCommand):
                 # For row in CSV, generate the _raw
                 for row in readCSV:                    
                     try:
-                        local_cache_records_submitted.data.delete(json.dumps({"_key":key}))
+                        local_cache_records_submitted.data.delete(json.dumps({"_key": str(row['key'])}))
                         raw = "purged record=" + str(row['key']) + " with status=" + str(row['status']) + ", ctime=" + str(row['ctime'])
                         yield {'_time': time.time(), '_raw': str(raw)}
                     except Exception as e:

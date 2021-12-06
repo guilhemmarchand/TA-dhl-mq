@@ -120,6 +120,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#managing-a-successful-batch">Managing a successful batch</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#verifying-the-status-of-the-mq-submission">Verifying the status of the MQ submission</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mq-overview-dashboard">MQ Overview dashboard</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -212,17 +216,37 @@
 </ul>
 <div class="section" id="sending-messages-to-ibm-mqseries-with-the-putmqrelay-command">
 <h3>Sending messages to IBM MQSeries with the putmqrelay command<a class="headerlink" href="#sending-messages-to-ibm-mqseries-with-the-putmqrelay-command" title="Permalink to this headline">¶</a></h3>
-<p>To send messages effectively, you will use a custom command named <code class="docutils literal notranslate"><span class="pre">putmqrelay</span></code> which requires the following arguments:</p>
+<p><strong>To send messages effectively, you will use a custom command named ``putmqrelay`` which requires the following arguments:</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">field_message_id</span></code>: the name of the Splunk field containing the message identifiers</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">field_message</span></code>: the name of the Splunk field containing the message payloads</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">field_appname</span></code>: the name of the Splunk field containing the application value, this is a string value which identifies the application</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">field_region</span></code>: the name of the Splunk field containing the region value, this is a string value which idenfities the region for these messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">field_manager</span></code>: The name of the IBM MQ Queue manager, which needs to be defined on the Splunk Search Heads and the consumers for this application/region</p></li>
-<li><p>field_queue=”queue”</p></li>
-<li><p>dedup=”False”</p></li>
-<li><p>comment=”This is a test”</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_manager</span></code>: the name of the Splunk field IBM MQ Queue manager, which needs to be defined on the Splunk Search Heads and the consumers for this application/region</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_queue</span></code>: the name of the Splunk field containing the IBM MQ Queue destination for the messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dedup</span></code>: (true/false) optional dedup at the command level which ensures messages being sent are unique, this can be handled on the upstream search level too</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">comment</span></code>:  optional comment for the submission, this comment will be logged at different levels and made available for the approver to review</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_batchsize</span></code>: optional maximal amount of messages per batch, defaults to 10000 messages, when the limit is reached, one or more additional batches are created to accomodate with the query</p></li>
 </ul>
+<p>When the command is called, it will render a summary of the request with the following information:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">action</span></code>: (success/failure) the result of the operation submit request</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">result</span></code>: a human reable message describing the result of the operation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results_count</span></code>: how many messages were requested to be sent by the upstream search</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">processed_count</span></code>: how many messages the command handled</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kvstore_count</span></code>: how many messages where generated in the Splunk remote KVstore</p></li>
+</ul>
+<p>A simple example of sending a message to MQ:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="n">makeresults</span>
+<span class="o">|</span> <span class="nb">eval</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;This is a test demo payload&quot;</span><span class="p">,</span> <span class="n">appname</span><span class="o">=</span><span class="s2">&quot;DMG&quot;</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="s2">&quot;LAB&quot;</span><span class="p">,</span> <span class="n">manager</span><span class="o">=</span><span class="s2">&quot;QM1&quot;</span><span class="p">,</span> <span class="n">queue</span><span class="o">=</span><span class="s2">&quot;DEV.QUEUE.1&quot;</span><span class="p">,</span> <span class="n">MsgId</span><span class="o">=</span><span class="n">md5</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">putmqrelay</span> <span class="n">field_message_id</span><span class="o">=</span><span class="s2">&quot;MsgId&quot;</span> <span class="n">field_message</span><span class="o">=</span><span class="s2">&quot;message&quot;</span> <span class="n">field_appname</span><span class="o">=</span><span class="s2">&quot;appname&quot;</span> <span class="n">field_manager</span><span class="o">=</span><span class="s2">&quot;manager&quot;</span> <span class="n">field_queue</span><span class="o">=</span><span class="s2">&quot;queue&quot;</span> <span class="n">field_region</span><span class="o">=</span><span class="s2">&quot;region&quot;</span> <span class="n">dedup</span><span class="o">=</span><span class="s2">&quot;False&quot;</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;Demo message&quot;</span>
+</pre></div>
+</div>
+<p>Which results in:</p>
+<a class="reference internal image-reference" href="_images/putmqrelay1.png"><img alt="putmqrelay1.png" class="align-center" src="_images/putmqrelay1.png" style="width: 1200px;" /></a>
+<p>Sending a real batch of messages would look like:</p>
+<a class="reference internal image-reference" href="_images/putmqrelay2.png"><img alt="putmqrelay2.png" class="align-center" src="_images/putmqrelay2.png" style="width: 1200px;" /></a>
+<p>At this stage, a batch has been generated and is pending from approval. (see the next section)</p>
 </div>
 </div>
 <div class="section" id="managing-mq-submission-batches">
@@ -306,6 +330,19 @@
 <a class="reference internal image-reference" href="_images/manage_batches13.png"><img alt="manage_batches13.png" class="align-center" src="_images/manage_batches13.png" style="width: 1200px;" /></a>
 <p><strong>At this stage, the manage cannot be managed any longer as it has been processed already, the UI would show an informational message when accessing to it:</strong></p>
 <a class="reference internal image-reference" href="_images/manage_batches14.png"><img alt="manage_batches14.png" class="align-center" src="_images/manage_batches14.png" style="width: 1200px;" /></a>
+</div>
+</div>
+<div class="section" id="verifying-the-status-of-the-mq-submission">
+<h2>Verifying the status of the MQ submission<a class="headerlink" href="#verifying-the-status-of-the-mq-submission" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="mq-overview-dashboard">
+<h3>MQ Overview dashboard<a class="headerlink" href="#mq-overview-dashboard" title="Permalink to this headline">¶</a></h3>
+<p><strong>Splunk administrators, MQ submitters and approvers can rely on the MQ Overview dashboard to verify the activity of the MQ resubmission solution:</strong></p>
+<a class="reference internal image-reference" href="_images/verify_status1.png"><img alt="verify_status1.png" class="align-center" src="_images/verify_status1.png" style="width: 1200px;" /></a>
+<p><strong>Depending on the user status, you will:</strong></p>
+<ul class="simple">
+<li><p>See all applications and all messages if you are an administrator, or a member of the MQ super admin role</p></li>
+<li><p>See all applications and messages for the list of applications you are a member of</p></li>
+</ul>
 </div>
 </div>
 </div>

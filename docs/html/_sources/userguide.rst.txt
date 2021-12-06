@@ -23,18 +23,49 @@ Submitting messages to IBM MQ Series from Splunk
 Sending messages to IBM MQSeries with the putmqrelay command
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To send messages effectively, you will use a custom command named ``putmqrelay`` which requires the following arguments:
+**To send messages effectively, you will use a custom command named ``putmqrelay`` which requires the following arguments:**
 
 - ``field_message_id``: the name of the Splunk field containing the message identifiers
 - ``field_message``: the name of the Splunk field containing the message payloads
 - ``field_appname``: the name of the Splunk field containing the application value, this is a string value which identifies the application
 - ``field_region``: the name of the Splunk field containing the region value, this is a string value which idenfities the region for these messages
+- ``field_manager``: the name of the Splunk field IBM MQ Queue manager, which needs to be defined on the Splunk Search Heads and the consumers for this application/region 
+- ``field_queue``: the name of the Splunk field containing the IBM MQ Queue destination for the messages
+- ``dedup``: (true/false) optional dedup at the command level which ensures messages being sent are unique, this can be handled on the upstream search level too
+- ``comment``:  optional comment for the submission, this comment will be logged at different levels and made available for the approver to review
+- ``max_batchsize``: optional maximal amount of messages per batch, defaults to 10000 messages, when the limit is reached, one or more additional batches are created to accomodate with the query
 
-- ``field_manager``: The name of the IBM MQ Queue manager, which needs to be defined on the Splunk Search Heads and the consumers for this application/region 
-- field_queue="queue"
-- dedup="False"
-- comment="This is a test"
+When the command is called, it will render a summary of the request with the following information:
 
+- ``action``: (success/failure) the result of the operation submit request
+- ``result``: a human reable message describing the result of the operation
+- ``results_count``: how many messages were requested to be sent by the upstream search
+- ``processed_count``: how many messages the command handled
+- ``kvstore_count``: how many messages where generated in the Splunk remote KVstore
+
+A simple example of sending a message to MQ:
+
+::
+
+   | makeresults
+   | eval message="This is a test demo payload", appname="DMG", region="LAB", manager="QM1", queue="DEV.QUEUE.1", MsgId=md5(message)
+   | putmqrelay field_message_id="MsgId" field_message="message" field_appname="appname" field_manager="manager" field_queue="queue" field_region="region" dedup="False" comment="Demo message"
+
+Which results in:
+
+.. image:: img/putmqrelay1.png
+   :alt: putmqrelay1.png
+   :align: center
+   :width: 1200px
+
+Sending a real batch of messages would look like:
+
+.. image:: img/putmqrelay2.png
+   :alt: putmqrelay2.png
+   :align: center
+   :width: 1200px
+
+At this stage, a batch has been generated and is pending from approval. (see the next section)
 
 Managing MQ submission batches
 ==============================
@@ -181,3 +212,22 @@ Managing a successful batch
    :alt: manage_batches14.png
    :align: center
    :width: 1200px
+
+Verifying the status of the MQ submission
+=========================================
+
+MQ Overview dashboard
+^^^^^^^^^^^^^^^^^^^^^
+
+**Splunk administrators, MQ submitters and approvers can rely on the MQ Overview dashboard to verify the activity of the MQ resubmission solution:**
+
+.. image:: img/verify_status1.png
+   :alt: verify_status1.png
+   :align: center
+   :width: 1200px
+
+**Depending on the user status, you will:**
+
+- See all applications and all messages if you are an administrator, or a member of the MQ super admin role
+- See all applications and messages for the list of applications you are a member of
+
