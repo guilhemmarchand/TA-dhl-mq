@@ -105,9 +105,21 @@
 <li class="toctree-l1"><a class="reference internal" href="high_availability.html">High Availability</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rbac.html">Role Based Access Control (RBAC)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Administrative Reference matrix</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#alerts-and-reports">Alerts and reports</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#scheduled-alerts-and-reports">Scheduled Alerts and reports</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#scheduled-alerts-reference">Scheduled alerts reference</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-relay-publishing">DHL MQ messages publishing - relay publishing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-batch-failing-detected">DHL MQ messages publishing - batch failing detected</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-batch-is-pending-from-approval">DHL MQ messages publishing - batch is pending from approval</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-registered-consumer-is-offline">DHL MQ HA group - registered consumer is offline</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#scheduled-reports-reference">Scheduled reports reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages">DHL MQ messages publishing - batch relay publishing for singleline messages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-clean-any-remaining-files-in-massbatch-and-batch-folders">DHL MQ maintenance - clean any remaining files in massbatch and batch folders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers">DHL MQ maintenance - purge old records from the local cache of the consumers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-send-keepalive-consumer">DHL MQ HA group - send keepalive consumer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-get-ha-groups-from-remote-storage">DHL MQ HA group - get ha groups from remote storage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-manager-group-election">DHL MQ HA group - manager group election</a></li>
 </ul>
 </li>
 </ul>
@@ -190,8 +202,8 @@
             
   <div class="section" id="administrative-reference-matrix">
 <h1>Administrative Reference matrix<a class="headerlink" href="#administrative-reference-matrix" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="alerts-and-reports">
-<h2>Alerts and reports<a class="headerlink" href="#alerts-and-reports" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="scheduled-alerts-and-reports">
+<h2>Scheduled Alerts and reports<a class="headerlink" href="#scheduled-alerts-and-reports" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="scheduled-alerts-reference">
 <h3>Scheduled alerts reference<a class="headerlink" href="#scheduled-alerts-reference" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="dhl-mq-messages-publishing-relay-publishing">
@@ -204,7 +216,91 @@
 <p><strong>SHC versus HF:</strong></p>
 <ul class="simple">
 <li><p>SHC: This alert when running on the SHC will maintain the KVstore records, especially it will purge old records when their expiration is reached</p></li>
-<li><p>HFs: This alert performs the submission to MQ</p></li>
+<li><p>HF: This alert performs the submission to IBM MQ</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-messages-publishing-batch-failing-detected">
+<h4>DHL MQ messages publishing - batch failing detected<a class="headerlink" href="#dhl-mq-messages-publishing-batch-failing-detected" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is an out of the box alert to detect when a batch is failing, either temporary or permanently.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This alert is to be running on the search head layer</p></li>
+<li><p>HF: This alert will not do anything on the HFs</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-messages-publishing-batch-is-pending-from-approval">
+<h4>DHL MQ messages publishing - batch is pending from approval<a class="headerlink" href="#dhl-mq-messages-publishing-batch-is-pending-from-approval" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is an out of the box alert to detect when a batch was submitted and is pending for approval.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This alert is to be running on the search head layer</p></li>
+<li><p>HF: This alert will not do anything on the HFs</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-ha-group-registered-consumer-is-offline">
+<h4>DHL MQ HA group - registered consumer is offline<a class="headerlink" href="#dhl-mq-ha-group-registered-consumer-is-offline" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is an out of the box alert to detect when a consumer is offline.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This alert is to be running on the search head layer</p></li>
+<li><p>HF: This alert will not do anything on the HFs</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="scheduled-reports-reference">
+<h3>Scheduled reports reference<a class="headerlink" href="#scheduled-reports-reference" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages">
+<h4>DHL MQ messages publishing - batch relay publishing for singleline messages<a class="headerlink" href="#dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages" title="Permalink to this headline">¶</a></h4>
+<p><strong>This scheduled reports handles the MQ submission for singleline messages sent in mass batches.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>
+<li><p>HF: This report runs on the HF</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-maintenance-clean-any-remaining-files-in-massbatch-and-batch-folders">
+<h4>DHL MQ maintenance - clean any remaining files in massbatch and batch folders<a class="headerlink" href="#dhl-mq-maintenance-clean-any-remaining-files-in-massbatch-and-batch-folders" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is a maintenance report which ensures that there are no orphans left by the submission processus on the Heavy Forwarders.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>
+<li><p>HF: This report runs on the HF</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers">
+<h4>DHL MQ maintenance - purge old records from the local cache of the consumers<a class="headerlink" href="#dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is a maintenance report which purges old records from the local cache consumers. (by default, records older than 48hours)</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>
+<li><p>HF: This report runs on the HF</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-ha-group-send-keepalive-consumer">
+<h4>DHL MQ HA group - send keepalive consumer<a class="headerlink" href="#dhl-mq-ha-group-send-keepalive-consumer" title="Permalink to this headline">¶</a></h4>
+<p><strong>This scheduled report sends a keep alive information to the SHC, and is used for High availability purposes.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>
+<li><p>HF: This report runs on the HF</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-ha-group-get-ha-groups-from-remote-storage">
+<h4>DHL MQ HA group - get ha groups from remote storage<a class="headerlink" href="#dhl-mq-ha-group-get-ha-groups-from-remote-storage" title="Permalink to this headline">¶</a></h4>
+<p><strong>This scheduled report retrieves the node manager information from the SHC and puts them in cache in a local KVstore on the consumers, it is used for High availability purposes.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>
+<li><p>HF: This report runs on the HF</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-ha-group-manager-group-election">
+<h4>DHL MQ HA group - manager group election<a class="headerlink" href="#dhl-mq-ha-group-manager-group-election" title="Permalink to this headline">¶</a></h4>
+<p><strong>This scheduled reports performs the node manager election per high availability group, and stores the information in a local KVstore of the SHC.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for to run on the SHC</p></li>
+<li><p>HF: On the HF, this report does nothing and can be safety disabled if necessary</p></li>
 </ul>
 </div>
 </div>
