@@ -6,7 +6,7 @@ Welcome to the DHL Splunk Add-on for MQ submission documentation
 **The DHL Splunk Add-on for MQ submission provides services for:**
 
 - Publishing on demand messages to various IBM MQ managers in scalable, resilient and distributed manner using various Splunk components
-- Handling the message life cycle at any point in time with RBAC capaibilities
+- Handling the message life cycle at any point in time with RBAC features
 - Hanlding temporary and permanent failures with automated retries based on a life cycle concept
 - High availability with automated fail-over using multiple Splunk Heavy Fowarders working in a HA group concept
 

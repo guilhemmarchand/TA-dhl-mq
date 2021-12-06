@@ -349,10 +349,25 @@ def process_event(helper, *args, **kwargs):
                 submitted_record = None
 
             if submitted_record:
-                logmsg = "This record: " + str(submitted_record) + " was processed already, we will not generate a duplicated message."
+                logmsg = "This record: " + str(submitted_record) + " was processed already, we will not generate a duplicated message and will inform the remote KVstore of the message status effectively."
                 helper.log_info(logmsg)
                 helper.log_debug("submitted_record={}".format(submitted_record))
+
+                # eventually, the Splunk infrastructure has not been able to cope with the load and did not register the status effectively
+                # this can happen for instance if the wide max number of concurrent searches was reached
+                # in such a case, udpate the record remotely
+                no_attempts +=1
+                search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"success\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                output_mode = "csv"
+                exec_mode = "oneshot"
+                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                if response.status_code not in (200, 201, 204):
+                    logmsg = "Kvstore updated has failed, server response: " + str(response.text)
+                    helper.log_error(logmsg)
+
                 return 0
+
             else:
                 logmsg = "This record with key: " + str(key) + " was not found in the local cache collection: " \
                     + str(local_cache_records_submitted_name) + ", assuming it was not procedded already and it cannot be a duplicate."

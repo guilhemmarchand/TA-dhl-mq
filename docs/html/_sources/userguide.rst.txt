@@ -1,6 +1,41 @@
 User guide
 ----------
 
+Submitting messages to IBM MQ Series from Splunk
+================================================
+
+**Using the Technical Add-on for IBM MQ-Series developed for DHL allows you submit any message to IBM MQ-Series resulting from a Splunk query, using the following summarised cycle:**
+
+- You run a Splunk search, which generates any number of results containing the message payloads to be sent as well as their identifiers (message ID)
+
+- Additional information are defined at search time, such as the destination Queue manager and the Queue
+
+- A custom command is called to interract and submit these messages to IBM MQ as part of a ``batch``
+
+- The batch is submitted as pending from approval
+
+- An approver receives a notification and approves your demand eventually, the approver can as well decide to refuse the batch and cancel its submission
+
+- After a couple of minutes, the batch is taken into account and messages start to be publishing by the Splunk Heavy Forwarders
+
+- Depending on the message nature (single line versus multiline) and the volume, the batch sent can take a few minutes to be full processed, or more
+
+Sending messages to IBM MQSeries with the putmqrelay command
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To send messages effectively, you will use a custom command named ``putmqrelay`` which requires the following arguments:
+
+- ``field_message_id``: the name of the Splunk field containing the message identifiers
+- ``field_message``: the name of the Splunk field containing the message payloads
+- ``field_appname``: the name of the Splunk field containing the application value, this is a string value which identifies the application
+- ``field_region``: the name of the Splunk field containing the region value, this is a string value which idenfities the region for these messages
+
+- ``field_manager``: The name of the IBM MQ Queue manager, which needs to be defined on the Splunk Search Heads and the consumers for this application/region 
+- field_queue="queue"
+- dedup="False"
+- comment="This is a test"
+
+
 Managing MQ submission batches
 ==============================
 

@@ -185,23 +185,34 @@ If for example, the Heavy Forwarder cannot reach the Splunk SHC for any reason, 
    :align: center
    :width: 1000px
 
+.. image:: img/ha_group15.png
+   :alt: ha_group15.png
+   :align: center
+   :width: 1000px
+
 *When the send keepalive is successful, a record will be created / updated concerning this specific Heavy Forwarder:*
 
 ::
 
    | inputlookup mq_publish_ha_consumers_keepalive | eval duration_since_last=tostring(now()-mtime, "duration"), mtime=strftime(mtime, "%c") | fields ha_group_name, consumer_name, duration_since_last, mtime
 
-.. image:: img/ha_group15.png
+.. image:: img/ha_group16.png
    :alt: ha_group15.png
    :align: center
    :width: 1000px
 
 *In case of an issue, the out of the box alert and the High Availability dashboard allows to quickly idenfity the failing node, and perform the investigation steps:*
 
-.. image:: img/ha_group16.png
-   :alt: ha_group16.png
+.. image:: img/ha_group17.png
+   :alt: ha_group17.png
    :align: center
    :width: 1000px
 
 *If in a given HA group, all the consumer nodes are seen as offline, the group manager will be tagged as None, consumption of the messages is not possible until at least one node is back online:*
 
+.. image:: img/ha_group18.png
+   :alt: ha_group18.png
+   :align: center
+   :width: 1000px
+
+*In this situation where all the nodes of a given HA group are offline, no messages can be consumed for the HA group scope any longer.*

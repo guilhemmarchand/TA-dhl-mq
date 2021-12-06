@@ -113,7 +113,14 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Development and build process</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#dependencies-for-developers">Dependencies for developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies-for-developers">Dependencies for developers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sphinx-librairies-and-documentation-generation">Sphinx librairies and documentation generation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-update-the-documentation">How to update the documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#ucc-gen-and-updating-the-technical-add-on">ucc-gen and updating the Technical Add-on</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -197,7 +204,63 @@
 <li><p>Operating system: Linux or MacOS (seriously, what else?)</p></li>
 <li><p>Access to the machine in terminal (SSH if remote)</p></li>
 <li><p>Python 3.7 or later</p></li>
+<li><p>Sphinx librairies for the generation of the documentations</p></li>
+<li><p>Splunk ucc-gen</p></li>
 </ul>
+<div class="section" id="sphinx-librairies-and-documentation-generation">
+<h3>Sphinx librairies and documentation generation<a class="headerlink" href="#sphinx-librairies-and-documentation-generation" title="Permalink to this headline">¶</a></h3>
+<p><strong>The documentation of the TA is hosted as part of code being stored in the ```docs`` directory, this consists in rst files using the Sphinx language:</strong></p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.sphinx-doc.org/">https://www.sphinx-doc.org/</a></p></li>
+</ul>
+<p>The following librairies are required on the host generating the updated documentation:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://pypi.org/project/Sphinx/">https://pypi.org/project/Sphinx/</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/sphinx-rtd-theme/">https://pypi.org/project/sphinx-rtd-theme/</a></p></li>
+</ul>
+<div class="section" id="how-to-update-the-documentation">
+<h4>How to update the documentation<a class="headerlink" href="#how-to-update-the-documentation" title="Permalink to this headline">¶</a></h4>
+<p><strong>To update the documentation, you will update the rst files then run the following command:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">docs</span>
+<span class="n">make</span> <span class="n">html</span>
+</pre></div>
+</div>
+<p>Any error in the syntax or missing files such as missing images, will be visible in the output of the make generation command.</p>
+<p>Once the documentation has been updated, and the changes commited to the remote repository in GitHub, the GitHup pages Website will render the changes after a few minutes.</p>
+</div>
+</div>
+<div class="section" id="ucc-gen-and-updating-the-technical-add-on">
+<h3>ucc-gen and updating the Technical Add-on<a class="headerlink" href="#ucc-gen-and-updating-the-technical-add-on" title="Permalink to this headline">¶</a></h3>
+<p><strong>The development of the Technical Add-on relies on the Splunk UCC generator:</strong></p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/splunk/addonfactory-ucc-generator">https://github.com/splunk/addonfactory-ucc-generator</a></p></li>
+<li><p><a class="reference external" href="https://splunk.github.io/addonfactory-ucc-generator/">https://splunk.github.io/addonfactory-ucc-generator/</a></p></li>
+</ul>
+<p><strong>When performing changes in the application, you will:</strong></p>
+<ul class="simple">
+<li><p>update the <code class="docutils literal notranslate"><span class="pre">version.txt</span></code> file to increment the version release number</p></li>
+<li><p>perform your changes effectively, by managing files in the <code class="docutils literal notranslate"><span class="pre">TA-dhl-mq/package</span></code> directory (such as modifying a view, etc)</p></li>
+<li><p>run the ucc-gen command via a shell wrapper:</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">TA</span><span class="o">-</span><span class="n">dhl</span><span class="o">-</span><span class="n">mq</span><span class="o">/</span><span class="n">build</span>
+<span class="o">./</span><span class="n">buil</span><span class="o">.</span><span class="n">sh</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>This produces automatically a new packaged application, located in the <code class="docutils literal notranslate"><span class="pre">TA-dhl-mq/output/</span></code> directory</p></li>
+<li><p>The tgz package is ignored in GitHub on purpose, you will take this new tarball archive, publish it as a new release in the repository releases, and finally deploy to your Splunk environment</p></li>
+</ul>
+<p><em>example:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TA</span><span class="o">-</span><span class="n">dhl</span><span class="o">-</span><span class="n">mq</span>
+<span class="n">TA</span><span class="o">-</span><span class="n">dhl</span><span class="o">-</span><span class="n">mq_1023</span><span class="o">.</span><span class="n">tgz</span>
+<span class="n">release</span><span class="o">-</span><span class="n">sha256</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>the content of the <code class="docutils literal notranslate"><span class="pre">TA-dhl-mq</span></code> directory is the uncompress content from the generated package (and is ignored in Git on purpose too)</p></li>
+<li><p>the tgz file is the package to be released in GitHub, and deployed to Splunk</p></li>
+</ul>
+</div>
 </div>
 </div>
 

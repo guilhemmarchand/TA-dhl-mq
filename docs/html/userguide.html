@@ -107,6 +107,10 @@
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">User guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#submitting-messages-to-ibm-mq-series-from-splunk">Submitting messages to IBM MQ Series from Splunk</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sending-messages-to-ibm-mqseries-with-the-putmqrelay-command">Sending messages to IBM MQSeries with the putmqrelay command</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#managing-mq-submission-batches">Managing MQ submission batches</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#batches-statuses">Batches statuses</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#validating-a-batch-pending-from-approval">Validating a batch pending from approval</a></li>
@@ -194,6 +198,33 @@
             
   <div class="section" id="user-guide">
 <h1>User guide<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submitting-messages-to-ibm-mq-series-from-splunk">
+<h2>Submitting messages to IBM MQ Series from Splunk<a class="headerlink" href="#submitting-messages-to-ibm-mq-series-from-splunk" title="Permalink to this headline">¶</a></h2>
+<p><strong>Using the Technical Add-on for IBM MQ-Series developed for DHL allows you submit any message to IBM MQ-Series resulting from a Splunk query, using the following summarised cycle:</strong></p>
+<ul class="simple">
+<li><p>You run a Splunk search, which generates any number of results containing the message payloads to be sent as well as their identifiers (message ID)</p></li>
+<li><p>Additional information are defined at search time, such as the destination Queue manager and the Queue</p></li>
+<li><p>A custom command is called to interract and submit these messages to IBM MQ as part of a <code class="docutils literal notranslate"><span class="pre">batch</span></code></p></li>
+<li><p>The batch is submitted as pending from approval</p></li>
+<li><p>An approver receives a notification and approves your demand eventually, the approver can as well decide to refuse the batch and cancel its submission</p></li>
+<li><p>After a couple of minutes, the batch is taken into account and messages start to be publishing by the Splunk Heavy Forwarders</p></li>
+<li><p>Depending on the message nature (single line versus multiline) and the volume, the batch sent can take a few minutes to be full processed, or more</p></li>
+</ul>
+<div class="section" id="sending-messages-to-ibm-mqseries-with-the-putmqrelay-command">
+<h3>Sending messages to IBM MQSeries with the putmqrelay command<a class="headerlink" href="#sending-messages-to-ibm-mqseries-with-the-putmqrelay-command" title="Permalink to this headline">¶</a></h3>
+<p>To send messages effectively, you will use a custom command named <code class="docutils literal notranslate"><span class="pre">putmqrelay</span></code> which requires the following arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">field_message_id</span></code>: the name of the Splunk field containing the message identifiers</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_message</span></code>: the name of the Splunk field containing the message payloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_appname</span></code>: the name of the Splunk field containing the application value, this is a string value which identifies the application</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_region</span></code>: the name of the Splunk field containing the region value, this is a string value which idenfities the region for these messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_manager</span></code>: The name of the IBM MQ Queue manager, which needs to be defined on the Splunk Search Heads and the consumers for this application/region</p></li>
+<li><p>field_queue=”queue”</p></li>
+<li><p>dedup=”False”</p></li>
+<li><p>comment=”This is a test”</p></li>
+</ul>
+</div>
+</div>
 <div class="section" id="managing-mq-submission-batches">
 <h2>Managing MQ submission batches<a class="headerlink" href="#managing-mq-submission-batches" title="Permalink to this headline">¶</a></h2>
 <p><strong>The user interface MQ Manage Batches is designed to allow users to interract with the life cycle of the batches:</strong></p>
