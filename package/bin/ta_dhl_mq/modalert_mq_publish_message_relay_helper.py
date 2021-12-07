@@ -349,210 +349,209 @@ def process_event(helper, *args, **kwargs):
                 submitted_record = None
 
             if submitted_record:
-                logmsg = "This record: " + str(submitted_record) + " was processed already, we will not generate a duplicated message and will inform the remote KVstore of the message status effectively."
+                logmsg = "This record: " + str(submitted_record) + " was processed already, we will not generate a duplicated message and the remote KVstore will be informed by the flush job of the message status effectively."
                 helper.log_info(logmsg)
                 helper.log_debug("submitted_record={}".format(submitted_record))
 
-                # eventually, the Splunk infrastructure has not been able to cope with the load and did not register the status effectively
-                # this can happen for instance if the wide max number of concurrent searches was reached
-                # in such a case, udpate the record remotely
-                no_attempts +=1
-                search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"success\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
-                output_mode = "csv"
-                exec_mode = "oneshot"
-                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
-
-                if response.status_code not in (200, 201, 204):
-                    logmsg = "Kvstore updated has failed, server response: " + str(response.text)
-                    helper.log_error(logmsg)
-
-                return 0
-
             else:
-                logmsg = "This record with key: " + str(key) + " was not found in the local cache collection: " \
-                    + str(local_cache_records_submitted_name) + ", assuming it was not procedded already and it cannot be a duplicate."
-                helper.log_debug(logmsg)
             
-            # get the existing record, if any
-            query_string = '{ "ha_group_name": "' + str(ha_group) + '" }'
-            record = None
-            try:
-                record = ha_group_collection.data.query(query=str(query_string))
-
-            except Exception as e:
+                # get the existing record, if any
+                query_string = '{ "ha_group_name": "' + str(ha_group) + '" }'
                 record = None
-            helper.log_debug("record={}".format(record))
+                try:
+                    record = ha_group_collection.data.query(query=str(query_string))
 
-            # Proceed
-            ha_group_elected_manager = None
-            ha_group_elected_manager = record[0].get('ha_group_elected_manager')
-            helper.log_debug("ha_group_elected_manager={}".format(ha_group_elected_manager))
+                except Exception as e:
+                    record = None
+                helper.log_debug("record={}".format(record))
 
-            # Only proceed either we run in standalone, or we are the manager
-            if ha_group_elected_manager:
+                # Proceed
+                ha_group_elected_manager = None
+                ha_group_elected_manager = record[0].get('ha_group_elected_manager')
+                helper.log_debug("ha_group_elected_manager={}".format(ha_group_elected_manager))
 
-                if str(ha_group_elected_manager) != str(myhostname):
+                # Only proceed either we run in standalone, or we are the manager
+                if ha_group_elected_manager:
 
-                    logmsg = "Nothing to do, this consumer is not the current manager for the HA group " \
-                        + str(ha_group) + ", the current manager is: " + str(ha_group_elected_manager)
-                    helper.log_info(logmsg)
+                    if str(ha_group_elected_manager) != str(myhostname):
 
-                else:
+                        logmsg = "Nothing to do, this consumer is not the current manager for the HA group " \
+                            + str(ha_group) + ", the current manager is: " + str(ha_group_elected_manager)
+                        helper.log_info(logmsg)
 
-                    # get the record age in seconds
-                    record_age = int(round(float(time.time()) - float(ctime), 0))
-                    helper.log_debug("record_age={}".format(record_age))
+                    else:
 
-                    #
-                    # KVstore eviction should be performed on the search head layer
-                    # rather than the HF backend to preserve the execution cycles for optimisation purposes
-                    # This is achieved by limiting the scope of the search provided to the alert action
-                    #
+                        # get the record age in seconds
+                        record_age = int(round(float(time.time()) - float(ctime), 0))
+                        helper.log_debug("record_age={}".format(record_age))
 
-                    # If the record submission is canceled
-                    if str(status) in ("permanent_failure") and str(kvstore_eviction) == "delete":
-                        logmsg = 'record is in permanent failure status and kvstore_eviction is delete.'
-                        helper.log_debug(logmsg)
+                        #
+                        # KVstore eviction should be performed on the search head layer
+                        # rather than the HF backend to preserve the execution cycles for optimisation purposes
+                        # This is achieved by limiting the scope of the search provided to the alert action
+                        #
 
-                        delete_record(helper, key, record_url, headers)
-                        return 0
+                        # If the record submission is canceled
+                        if str(status) in ("permanent_failure") and str(kvstore_eviction) == "delete":
+                            logmsg = 'record is in permanent failure status and kvstore_eviction is delete.'
+                            helper.log_debug(logmsg)
 
-                    elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
-                        logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
-                        helper.log_debug(logmsg)
-
-                        if record_age >= kvstore_retention_seconds:
                             delete_record(helper, key, record_url, headers)
-                        else:
-                            logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
-                                + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
-                            helper.log_info(logmsg)
-                        return 0
+                            return 0
 
-                    # If the record is to be processed 
-                    elif str(status) in ("pending", "temporary_failure"):
+                        elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
+                            logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
+                            helper.log_debug(logmsg)
 
-                        # first, let's create a folder to temporary store our batch files
-                        SPLUNK_HOME = os.environ["SPLUNK_HOME"]
-                        batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
-                        if not os.path.isdir(batchfolder):
-                            try:
-                                os.makedirs(batchfolder)
-                            except Exception as e:
-                                helper.log_error("batch folder coult not be created!={}".format(e))
+                            if record_age >= kvstore_retention_seconds:
+                                delete_record(helper, key, record_url, headers)
+                            else:
+                                logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
+                                    + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
+                                helper.log_info(logmsg)
+                            return 0
 
-                        # calculate the length of the message to be published
-                        msgpayload_len = len(str(message))
+                        # If the record is to be processed 
+                        elif str(status) in ("pending", "temporary_failure"):
 
-                        # if the max number of attemps has not been reached
-                        if no_attempts < no_max_retry:
+                            # first, let's create a folder to temporary store our batch files
+                            SPLUNK_HOME = os.environ["SPLUNK_HOME"]
+                            batchfolder = SPLUNK_HOME + "/etc/apps/TA-dhl-mq/batch"
+                            if not os.path.isdir(batchfolder):
+                                try:
+                                    os.makedirs(batchfolder)
+                                except Exception as e:
+                                    helper.log_error("batch folder coult not be created!={}".format(e))
 
-                            # increment
-                            no_attempts +=1 
+                            # calculate the length of the message to be published
+                            msgpayload_len = len(str(message))
 
-                            logmsg = 'MQ message publication relay, attempting publishing message from collection key=' + str(key) \
-                                + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
-                            helper.log_info(logmsg)
+                            # if the max number of attemps has not been reached
+                            if no_attempts < no_max_retry:
 
-                            # use the record key to name the batch
-                            uuid = str(key)
+                                # increment
+                                no_attempts +=1 
 
-                            # Generate Shell and batch files
-                            shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
-                            batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
-
-                            # purge files if exist already
-                            if os.path.isfile(shellbatchname):
-                                os.remove(shellbatchname)
-                            if os.path.isfile(batchfile):
-                                os.remove(batchfile)
-
-                            shellcontent = '#!/bin/bash\n' +\
-                            '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
-                            'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
-                            str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + ' 2>&1\n' +\
-                            'RETCODE=$?\n' +\
-                            'if [ $RETCODE -ne 0 ]; then\n' +\
-                            'echo "Failure with exit code $RETCODE"\n' +\
-                            'else\n' +\
-                            'echo "Success"\n' +\
-                            'fi\n' +\
-                            'exit 0'
-
-                            helper.log_debug("shellcontent:={}".format(shellcontent))
-
-                            with open(str(shellbatchname), 'w') as f:
-                                f.write(shellcontent)
-                            os.chmod(str(shellbatchname), 0o740)
-
-                            with open(str(batchfile), 'w') as f:
-                                f.write(str(message))
-
-                            # Execute the Shell batch now
-                            output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
-                            helper.log_debug("output={}".format(output))
-
-                            # purge both baches
-                            os.remove(str(shellbatchname))
-                            os.remove(str(batchfile))
-
-                            # From the output of the subprocess, determine the publication status
-                            # If an exception was raised, it will be added to the error message
-                            if "Success" in str(output):
-                                logmsg = "message publication success, queue_manager=" + str(mqmanager) \
-                                + ", queue=" + str(mqqueuedest) \
-                                + ", appname=" + str(appname) + ", region=" + str(region) \
-                                + ", batch_uuid=" + str(batch_uuid) \
-                                + ", user=" + str(user) \
-                                + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                                logmsg = 'MQ message publication relay, attempting publishing message from collection key=' + str(key) \
+                                    + ' (attempt ' + str(no_attempts) + '/' + str(no_max_retry) + ')'
                                 helper.log_info(logmsg)
 
-                                # insert the successful record Metadata in the local submitted records collection
-                                try:
-                                    local_cache_records_submitted.data.insert(json.dumps({"_key": str(key), "ctime": str(time.time()), "status": "success"}))
-                                except Exception as e:
-                                    logmsg = "Kvstore submitted record insertion to the collection " + str(local_cache_records_submitted_name) + " has failed with exception: " + str(e)
-                                    helper.log_error(logmsg)
+                                # use the record key to name the batch
+                                uuid = str(key)
 
-                                # update the record
-                                search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"success\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
-                                output_mode = "csv"
-                                exec_mode = "oneshot"
-                                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+                                # Generate Shell and batch files
+                                shellbatchname = str(batchfolder) + "/" + str(uuid) + "-publish-mq.sh"
+                                batchfile = str(batchfolder) + "/" + str(uuid) + "-filebatch.raw"
 
-                                if response.status_code not in (200, 201, 204):
-                                    logmsg = "Kvstore updated has failed, server response: " + str(response.text)
-                                    helper.log_error(logmsg)
+                                # purge files if exist already
+                                if os.path.isfile(shellbatchname):
+                                    os.remove(shellbatchname)
+                                if os.path.isfile(batchfile):
+                                    os.remove(batchfile)
 
-                                return 0
+                                shellcontent = '#!/bin/bash\n' +\
+                                '. ' + str(mqclient_bin_path) + '/bin/setmqenv -s\n' +\
+                                'export MQSERVER=\"' + str(mqchannel) + '/TCP/' + str(mqhost) + '(' + str(mqport) + ')\"\n' +\
+                                str(q_bin_path) + '/q -m ' + str(mqmanager) + ' -l mqic -o ' + str(mqqueuedest) + ' -F ' + str(batchfile) + ' 2>&1\n' +\
+                                'RETCODE=$?\n' +\
+                                'if [ $RETCODE -ne 0 ]; then\n' +\
+                                'echo "Failure with exit code $RETCODE"\n' +\
+                                'else\n' +\
+                                'echo "Success"\n' +\
+                                'fi\n' +\
+                                'exit 0'
 
-                            else:
+                                helper.log_debug("shellcontent:={}".format(shellcontent))
 
-                                if no_attempts == no_max_retry:
+                                with open(str(shellbatchname), 'w') as f:
+                                    f.write(shellcontent)
+                                os.chmod(str(shellbatchname), 0o740)
 
-                                # case 1: max attempt is now reached
-                                    logmsg = 'permanent failure for record key=' + str(key) \
-                                    + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled,' +\
-                                    "queue_manager=" + str(mqmanager) \
+                                with open(str(batchfile), 'w') as f:
+                                    f.write(str(message))
+
+                                # Execute the Shell batch now
+                                output = subprocess.check_output([str(shellbatchname)],universal_newlines=True)
+                                helper.log_debug("output={}".format(output))
+
+                                # purge both baches
+                                if os.path.isfile(shellbatchname):
+                                    os.remove(shellbatchname)
+                                if os.path.isfile(batchfile):
+                                    os.remove(batchfile)
+
+                                # From the output of the subprocess, determine the publication status
+                                # If an exception was raised, it will be added to the error message
+                                if "Success" in str(output):
+                                    logmsg = "message publication success, queue_manager=" + str(mqmanager) \
                                     + ", queue=" + str(mqqueuedest) \
                                     + ", appname=" + str(appname) + ", region=" + str(region) \
                                     + ", batch_uuid=" + str(batch_uuid) \
                                     + ", user=" + str(user) \
                                     + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+                                    helper.log_info(logmsg)
 
-                                    if str(kvstore_eviction) == "delete":
+                                    # insert the successful record Metadata in the local submitted records collection, successfully proceeded records are remotely updated
+                                    # by a third party job every 2 minutes for performance purposes
+                                    try:
+                                        local_cache_records_submitted.data.insert(json.dumps({"_key": str(key), "ctime": str(time.time()), "status": "success", "remote_kv_is_aware": 0}))
+                                    except Exception as e:
+                                        logmsg = "Kvstore submitted record insertion to the collection " + str(local_cache_records_submitted_name) + " has failed with exception: " + str(e)
                                         helper.log_error(logmsg)
-                                        helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
 
-                                        # delete the record
-                                        delete_record(helper, key, record_url, headers)
+                                    return 0
 
-                                    elif str(kvstore_eviction) == "preserve":
+                                else:
+
+                                    if no_attempts == no_max_retry:
+
+                                    # case 1: max attempt is now reached
+                                        logmsg = 'permanent failure for record key=' + str(key) \
+                                        + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled,' +\
+                                        "queue_manager=" + str(mqmanager) \
+                                        + ", queue=" + str(mqqueuedest) \
+                                        + ", appname=" + str(appname) + ", region=" + str(region) \
+                                        + ", batch_uuid=" + str(batch_uuid) \
+                                        + ", user=" + str(user) \
+                                        + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+
+                                        if str(kvstore_eviction) == "delete":
+                                            helper.log_error(logmsg)
+                                            helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
+
+                                            # delete the record
+                                            delete_record(helper, key, record_url, headers)
+
+                                        elif str(kvstore_eviction) == "preserve":
+                                            helper.log_error(logmsg)
+                                            helper.log_info("kvstore_eviction: preserving the record with key=" + str(key))
+
+                                            # update the record
+                                            search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"permanent_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                                            output_mode = "csv"
+                                            exec_mode = "oneshot"
+                                            response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
+
+                                            if response.status_code not in (200, 201, 204):
+                                                logmsg = "Kvstore updated has failed, server response: " + str(response.text)
+                                                helper.log_error(logmsg)
+
+                                            return 0
+
+                                    else:
+
+                                    # case 2: max attempt is not reached yet
+                                        logmsg = "failure in message publication, queue_manager=" + str(mqmanager) \
+                                        + ", queue=" + str(mqqueuedest) \
+                                        + ", appname=" + str(appname) + ", region=" + str(region) \
+                                        + ", batch_uuid=" + str(batch_uuid) \
+                                        + ", user=" + str(user) \
+                                        + ", message_length=" + str(msgpayload_len) + ", key=" + str(key) \
+                                        + ", exception=" + str(output)
                                         helper.log_error(logmsg)
-                                        helper.log_info("kvstore_eviction: preserving the record with key=" + str(key))
 
                                         # update the record
-                                        search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"permanent_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                                        search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"temporary_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
                                         output_mode = "csv"
                                         exec_mode = "oneshot"
                                         response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
@@ -563,20 +562,32 @@ def process_event(helper, *args, **kwargs):
 
                                         return 0
 
-                                else:
+                            # This stage should not be reached as we deal with the reached max amount of attempts
+                            # in the previous condition
+                            else:
 
-                                # case 2: max attempt is not reached yet
-                                    logmsg = "failure in message publication, queue_manager=" + str(mqmanager) \
-                                    + ", queue=" + str(mqqueuedest) \
-                                    + ", appname=" + str(appname) + ", region=" + str(region) \
-                                    + ", batch_uuid=" + str(batch_uuid) \
-                                    + ", user=" + str(user) \
-                                    + ", message_length=" + str(msgpayload_len) + ", key=" + str(key) \
-                                    + ", exception=" + str(output)
+                                logmsg = 'permanent failure for record key=' + str(key) \
+                                + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled,' +\
+                                "queue_manager=" + str(mqmanager) \
+                                + ", queue=" + str(mqqueuedest) \
+                                + ", appname=" + str(appname) + ", region=" + str(region) \
+                                + ", batch_uuid=" + str(batch_uuid) \
+                                + ", user=" + str(user) \
+                                + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
+
+                                if str(kvstore_eviction) == "delete":
                                     helper.log_error(logmsg)
+                                    helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
+
+                                    # delete the record
+                                    delete_record(helper, key, record_url, headers)
+
+                                elif str(kvstore_eviction) == "preserve":
+                                    helper.log_error(logmsg)
+                                    helper.log_info("kvstore_eviction: preserving the record with key=" + str(key))
 
                                     # update the record
-                                    search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"temporary_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
+                                    search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"permanent_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
                                     output_mode = "csv"
                                     exec_mode = "oneshot"
                                     response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
@@ -586,39 +597,3 @@ def process_event(helper, *args, **kwargs):
                                         helper.log_error(logmsg)
 
                                     return 0
-
-                        # This stage should not be reached as we deal with the reached max amount of attempts
-                        # in the previous condition
-                        else:
-
-                            logmsg = 'permanent failure for record key=' + str(key) \
-                            + ' has reached ' + str(no_attempts) + ' attempts over ' + str(no_max_retry) + ' allowed, its publication is now canceled,' +\
-                            "queue_manager=" + str(mqmanager) \
-                            + ", queue=" + str(mqqueuedest) \
-                            + ", appname=" + str(appname) + ", region=" + str(region) \
-                            + ", batch_uuid=" + str(batch_uuid) \
-                            + ", user=" + str(user) \
-                            + ", message_length=" + str(msgpayload_len) + ", key=" + str(key)
-
-                            if str(kvstore_eviction) == "delete":
-                                helper.log_error(logmsg)
-                                helper.log_info("kvstore_eviction: permanently deleting the record with key=" + str(key))
-
-                                # delete the record
-                                delete_record(helper, key, record_url, headers)
-
-                            elif str(kvstore_eviction) == "preserve":
-                                helper.log_error(logmsg)
-                                helper.log_info("kvstore_eviction: preserving the record with key=" + str(key))
-
-                                # update the record
-                                search = "| inputlookup mq_publish_backlog where _key=\"" + str(key) + "\" | eval key=_key, status=\"permanent_failure\", mtime=\"" + str(time.time()) + "\", no_attempts=\"" + str(no_attempts) + "\" | outputlookup mq_publish_backlog append=t key_field=key"
-                                output_mode = "csv"
-                                exec_mode = "oneshot"
-                                response = requests.post(url, headers={'Authorization': header}, verify=False, data={'search': search, 'output_mode': output_mode, 'exec_mode': exec_mode}) 
-
-                                if response.status_code not in (200, 201, 204):
-                                    logmsg = "Kvstore updated has failed, server response: " + str(response.text)
-                                    helper.log_error(logmsg)
-
-                                return 0

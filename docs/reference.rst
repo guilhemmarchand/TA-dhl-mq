@@ -83,6 +83,16 @@ DHL MQ maintenance - purge old records from the local cache of the consumers
 - SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled
 - HF: This report runs on the HF
 
+DHL MQ messages publishing - batch relay flush successfully procedded records
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+**This is a maintenance report which flushed every 2 minutes the successfully proceeded records for the remote KVstore and the local consumer cache.**
+
+**SHC versus HF:**
+
+- SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled
+- HF: This report runs on the HF
+
 DHL MQ HA group - send keepalive consumer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -207,8 +207,8 @@ class ManagePendingBatch(GeneratingCommand):
                                 + '\", batch_uuid=\"' + str(row['batch_uuid']) \
                                 + '\", region=\"' + str(row['region']) \
                                 + '\", validation_required=\"' + str(row['validation_required']) \
-                                + '\", submitter=\"' + str(row['submitter']) + '\"' \
-                                + '\", approver=\"' + str(user) + '\"'
+                                + '\", submitter=\"' + str(row['submitter']) \
+                                + '\", approver=\"' + str(user)
                             outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
                             outputlog.close()
 
@@ -282,8 +282,8 @@ class ManagePendingBatch(GeneratingCommand):
                                 + '\", batch_uuid=\"' + str(row['batch_uuid']) \
                                 + '\", region=\"' + str(row['region']) \
                                 + '\", validation_required=\"' + str(row['validation_required']) \
-                                + '\", submitter=\"' + str(row['submitter']) + '\"' \
-                                + '\", approver=\"' + str(user) + '\"'
+                                + '\", submitter=\"' + str(row['submitter']) \
+                                + '\", approver=\"' + str(user)
                             outputlog.write(str(t[:-3]) + " INFO file=managebatch.py | customaction - signature=\"managebatch custom command called, " + str(raw_kv_message) + "\", app=\"TA-dhl-mq\" action_mode=\"saved\" action_status=\"success\", approver_comment=\"" + str(comment) + "\", approver=\"" + str(user) + "\", action_performed=\"" + str(self.action) + "\"\n")
                             outputlog.close()
 

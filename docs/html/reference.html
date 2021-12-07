@@ -117,6 +117,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages">DHL MQ messages publishing - batch relay publishing for singleline messages</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-clean-any-remaining-files-in-massbatch-and-batch-folders">DHL MQ maintenance - clean any remaining files in massbatch and batch folders</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers">DHL MQ maintenance - purge old records from the local cache of the consumers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-batch-relay-flush-successfully-procedded-records">DHL MQ messages publishing - batch relay flush successfully procedded records</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-send-keepalive-consumer">DHL MQ HA group - send keepalive consumer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-get-ha-groups-from-remote-storage">DHL MQ HA group - get ha groups from remote storage</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-ha-group-manager-group-election">DHL MQ HA group - manager group election</a></li>
@@ -270,6 +271,15 @@
 <div class="section" id="dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers">
 <h4>DHL MQ maintenance - purge old records from the local cache of the consumers<a class="headerlink" href="#dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers" title="Permalink to this headline">¶</a></h4>
 <p><strong>This is a maintenance report which purges old records from the local cache consumers. (by default, records older than 48hours)</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>
+<li><p>HF: This report runs on the HF</p></li>
+</ul>
+</div>
+<div class="section" id="dhl-mq-messages-publishing-batch-relay-flush-successfully-procedded-records">
+<h4>DHL MQ messages publishing - batch relay flush successfully procedded records<a class="headerlink" href="#dhl-mq-messages-publishing-batch-relay-flush-successfully-procedded-records" title="Permalink to this headline">¶</a></h4>
+<p><strong>This is a maintenance report which flushed every 2 minutes the successfully proceeded records for the remote KVstore and the local consumer cache.</strong></p>
 <p><strong>SHC versus HF:</strong></p>
 <ul class="simple">
 <li><p>SHC: This report is designed for Heavy Forwarders, it does nothing on the search head layer and can be safety disabled</p></li>

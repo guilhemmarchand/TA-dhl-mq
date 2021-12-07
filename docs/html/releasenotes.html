@@ -104,12 +104,14 @@
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">MQ managers Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="high_availability.html">High Availability</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rbac.html">Role Based Access Control (RBAC)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Administrative Reference matrix</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="userguide.html">User guide</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-27">Version 1.0.27</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-26">Version 1.0.26</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-25">Version 1.0.25</a></li>
 </ul>
@@ -184,6 +186,13 @@
             
   <div class="section" id="release-notes">
 <h1>Release notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-1-0-27">
+<h2>Version 1.0.27<a class="headerlink" href="#version-1-0-27" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>To improve the performance of the mutliline and re-attempt modular alert process, the successfully proceeded records are notified to the remote KVstore by batching via a third party report invovling a separate custom command</p></li>
+<li><p>fix issue in log generation from the managebatch custom command which generates twice double quotes</p></li>
+</ul>
+</div>
 <div class="section" id="version-1-0-26">
 <h2>Version 1.0.26<a class="headerlink" href="#version-1-0-26" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">

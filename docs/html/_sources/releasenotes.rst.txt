@@ -1,6 +1,12 @@
 Release notes
 -------------
 
+Version 1.0.27
+==============
+
+- To improve the performance of the mutliline and re-attempt modular alert process, the successfully proceeded records are notified to the remote KVstore by batching via a third party report invovling a separate custom command
+- fix issue in log generation from the managebatch custom command which generates twice double quotes
+
 Version 1.0.26
 ==============
 
