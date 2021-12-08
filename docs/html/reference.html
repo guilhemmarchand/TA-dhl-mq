@@ -114,6 +114,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#scheduled-reports-reference">Scheduled reports reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-purge-records-from-the-main-mq-backlog-kvstore-collection">DHL MQ maintenance - purge records from the main MQ backlog KVstore collection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages">DHL MQ messages publishing - batch relay publishing for singleline messages</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-clean-any-remaining-files-in-massbatch-and-batch-folders">DHL MQ maintenance - clean any remaining files in massbatch and batch folders</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dhl-mq-maintenance-purge-old-records-from-the-local-cache-of-the-consumers">DHL MQ maintenance - purge old records from the local cache of the consumers</a></li>
@@ -216,7 +217,7 @@
 </ul>
 <p><strong>SHC versus HF:</strong></p>
 <ul class="simple">
-<li><p>SHC: This alert when running on the SHC will maintain the KVstore records, especially it will purge old records when their expiration is reached</p></li>
+<li><p>SHC: This alert does nothing on the SHC, and can be safety disabled</p></li>
 <li><p>HF: This alert performs the submission to IBM MQ</p></li>
 </ul>
 </div>
@@ -250,6 +251,15 @@
 </div>
 <div class="section" id="scheduled-reports-reference">
 <h3>Scheduled reports reference<a class="headerlink" href="#scheduled-reports-reference" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="dhl-mq-maintenance-purge-records-from-the-main-mq-backlog-kvstore-collection">
+<h4>DHL MQ maintenance - purge records from the main MQ backlog KVstore collection<a class="headerlink" href="#dhl-mq-maintenance-purge-records-from-the-main-mq-backlog-kvstore-collection" title="Permalink to this headline">¶</a></h4>
+<p><strong>This scheduled reports purges the old records from the main MQ backlog KVstore collection according to the KVstore eviction and retention policy.</strong></p>
+<p><strong>SHC versus HF:</strong></p>
+<ul class="simple">
+<li><p>SHC: This report runs on the search head layer</p></li>
+<li><p>HF: This report does nothing on the consumers and can be safety disabled if necessary</p></li>
+</ul>
+</div>
 <div class="section" id="dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages">
 <h4>DHL MQ messages publishing - batch relay publishing for singleline messages<a class="headerlink" href="#dhl-mq-messages-publishing-batch-relay-publishing-for-singleline-messages" title="Permalink to this headline">¶</a></h4>
 <p><strong>This scheduled reports handles the MQ submission for singleline messages sent in mass batches.</strong></p>

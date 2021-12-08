@@ -14,6 +14,7 @@
 		<saved name="DHL MQ Logs - relay and multiline publishing logs (re-attempts of failed batches and multiline publishing)" />
 		<saved name="DHL MQ Logs - putmqrelay (submitting messages to the collection for publishing purposes)" />
 		<saved name="DHL MQ Logs - managebatch logs (batch validation by approvers)" />
+		<saved name="DHL MQ Logs - MQ backlog purge logs" />		
 	</collection>
     <collection label="Search">
 		<view name="search" />

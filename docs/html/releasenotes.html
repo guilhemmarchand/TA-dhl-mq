@@ -111,6 +111,7 @@
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-28">Version 1.0.28</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-27">Version 1.0.27</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-26">Version 1.0.26</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-25">Version 1.0.25</a></li>
@@ -186,6 +187,14 @@
             
   <div class="section" id="release-notes">
 <h1>Release notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-1-0-28">
+<h2>Version 1.0.28<a class="headerlink" href="#version-1-0-28" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Delegate the MQ backlog KVstore collection old records purge to a seperate scheduled reports relying on a new custom command for better performances and less CPU cycles required on the SHC (custom command: purgebacklog, report: DHL MQ Logs - MQ backlog purge logs)</p></li>
+<li><p>Manage batch: allow to cancel a batch which remains in pending from processing but might have been partially submitted already, better handle canceling a batch in temporary failure (custom command: managebatch)</p></li>
+<li><p>set the schedule_window to auto by default for scheduled reports and alerts on the SHC that can accomodate with the setting with no consequences</p></li>
+</ul>
+</div>
 <div class="section" id="version-1-0-27">
 <h2>Version 1.0.27<a class="headerlink" href="#version-1-0-27" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">

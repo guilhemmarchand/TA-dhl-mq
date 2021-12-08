@@ -164,164 +164,136 @@ def process_event(helper, *args, **kwargs):
     kvstore_retention_seconds = int(float(kvstore_retention) * 3600)
     helper.log_debug("kvstore_retention_seconds={}".format(kvstore_retention_seconds))
 
-    # Loop within events and proceed
+    # Loop within events and proceed, only if running on the consumers
 
-    events = helper.get_events()
-    for event in events:
-        helper.log_debug("event={}".format(event))
+    if str(mqpassthrough) == "enabled":
 
-        account = helper.get_param("account")
-        helper.log_debug("account={}".format(account))
+        msg = "This alert is designed to be running on the consumers only, and can be safety disabled on the search heads"
+        helper.log_info(msg)
 
-        # get account details
-        account_cfm = solnlib.conf_manager.ConfManager(
-            session_key,
-            app,
-            realm="__REST_CREDENTIAL__#{}#configs/conf-ta_dhl_mq_account".format(app))
-        splunk_ta_account_conf = account_cfm.get_conf("ta_dhl_mq_account").get_all()
-        helper.log_debug("account={}".format(splunk_ta_account_conf))
+        return 0
 
-        # account details
-        account_details = splunk_ta_account_conf[account]
+    else:
 
-        # Get authentication type
-        auth_type = account_details.get("auth_type", 0)
-        helper.log_debug("auth_type={}".format(auth_type))
+        events = helper.get_events()
+        for event in events:
+            helper.log_debug("event={}".format(event))
 
-        # Get username
-        username = account_details.get("username", 0)
-        helper.log_debug("username={}".format(username))
+            account = helper.get_param("account")
+            helper.log_debug("account={}".format(account))
 
-        # Get password
-        password = account_details.get("password", 0)
-        helper.log_debug("password={}".format(password))
+            # get account details
+            account_cfm = solnlib.conf_manager.ConfManager(
+                session_key,
+                app,
+                realm="__REST_CREDENTIAL__#{}#configs/conf-ta_dhl_mq_account".format(app))
+            splunk_ta_account_conf = account_cfm.get_conf("ta_dhl_mq_account").get_all()
+            helper.log_debug("account={}".format(splunk_ta_account_conf))
 
-        # get mqmanager
-        mqmanager = str(account)
-        helper.log_debug("mqmanager={}".format(mqmanager))
+            # account details
+            account_details = splunk_ta_account_conf[account]
 
-        # Get mqhost
-        mqhost = account_details.get("mqhost", 0)
-        helper.log_debug("mqhost={}".format(mqhost))
+            # Get authentication type
+            auth_type = account_details.get("auth_type", 0)
+            helper.log_debug("auth_type={}".format(auth_type))
 
-        # Get mqport
-        mqport = account_details.get("mqport", 0)
-        helper.log_debug("mqport={}".format(mqport))
+            # Get username
+            username = account_details.get("username", 0)
+            helper.log_debug("username={}".format(username))
 
-        # Get mqchannel
-        mqchannel = account_details.get("mqchannel", 0)
-        helper.log_debug("mqchannel={}".format(mqchannel))
+            # Get password
+            password = account_details.get("password", 0)
+            helper.log_debug("password={}".format(password))
 
-        #
-        # Alert params
-        #
+            # get mqmanager
+            mqmanager = str(account)
+            helper.log_debug("mqmanager={}".format(mqmanager))
 
-        # Get key
-        key = helper.get_param("key")
-        helper.log_debug("key={}".format(key))
+            # Get mqhost
+            mqhost = account_details.get("mqhost", 0)
+            helper.log_debug("mqhost={}".format(mqhost))
 
-        # Get app
-        appname = helper.get_param("appname")
-        helper.log_debug("appname={}".format(appname))
+            # Get mqport
+            mqport = account_details.get("mqport", 0)
+            helper.log_debug("mqport={}".format(mqport))
 
-        # Get region
-        region = helper.get_param("region")
-        helper.log_debug("region={}".format(region))
+            # Get mqchannel
+            mqchannel = account_details.get("mqchannel", 0)
+            helper.log_debug("mqchannel={}".format(mqchannel))
 
-        # Get mqqueuedest
-        mqqueuedest = helper.get_param("mqqueuedest")
-        helper.log_debug("mqqueuedest={}".format(mqqueuedest))
+            #
+            # Alert params
+            #
 
-        # Get message
-        message = helper.get_param("message")
-        helper.log_debug("message={}".format(message))
+            # Get key
+            key = helper.get_param("key")
+            helper.log_debug("key={}".format(key))
 
-        # Get multiline
-        multiline = helper.get_param("multiline")
-        helper.log_debug("multiline={}".format(multiline))
+            # Get app
+            appname = helper.get_param("appname")
+            helper.log_debug("appname={}".format(appname))
 
-        # Get no_max_retry
-        no_max_retry = int(helper.get_param("no_max_retry"))
-        helper.log_debug("no_max_retry={}".format(no_max_retry))
+            # Get region
+            region = helper.get_param("region")
+            helper.log_debug("region={}".format(region))
 
-        # Get no_attempts
-        no_attempts = int(helper.get_param("no_attempts"))
-        helper.log_debug("no_attempts={}".format(no_attempts))
+            # Get mqqueuedest
+            mqqueuedest = helper.get_param("mqqueuedest")
+            helper.log_debug("mqqueuedest={}".format(mqqueuedest))
 
-        # Get ctime
-        ctime = helper.get_param("ctime")
-        helper.log_debug("ctime={}".format(ctime))
+            # Get message
+            message = helper.get_param("message")
+            helper.log_debug("message={}".format(message))
 
-        # Get mtime
-        mtime = helper.get_param("mtime")
-        helper.log_debug("mtime={}".format(mtime))
+            # Get multiline
+            multiline = helper.get_param("multiline")
+            helper.log_debug("multiline={}".format(multiline))
 
-        # Get status
-        status = helper.get_param("status")
-        helper.log_debug("status={}".format(status))
+            # Get no_max_retry
+            no_max_retry = int(helper.get_param("no_max_retry"))
+            helper.log_debug("no_max_retry={}".format(no_max_retry))
 
-        # Get user
-        user = helper.get_param("user")
-        helper.log_debug("user={}".format(user))
+            # Get no_attempts
+            no_attempts = int(helper.get_param("no_attempts"))
+            helper.log_debug("no_attempts={}".format(no_attempts))
 
-        # Get batch_uuid
-        batch_uuid = helper.get_param("batch_uuid")
-        helper.log_debug("batch_uuid={}".format(batch_uuid))
+            # Get ctime
+            ctime = helper.get_param("ctime")
+            helper.log_debug("ctime={}".format(ctime))
 
-        # Get validation_required
-        validation_required = helper.get_param("validation_required")
-        helper.log_debug("validation_required={}".format(validation_required))
+            # Get mtime
+            mtime = helper.get_param("mtime")
+            helper.log_debug("mtime={}".format(mtime))
 
-        # Get comment
-        comment = helper.get_param("comment")
-        helper.log_debug("comment={}".format(comment))
+            # Get status
+            status = helper.get_param("status")
+            helper.log_debug("status={}".format(status))
 
-        # Set record_url
-        record_url = str(kv_url) + str(key)
+            # Get user
+            user = helper.get_param("user")
+            helper.log_debug("user={}".format(user))
 
-        # Define the url
-        url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
+            # Get batch_uuid
+            batch_uuid = helper.get_param("batch_uuid")
+            helper.log_debug("batch_uuid={}".format(batch_uuid))
 
-        #
-        # START LOGIC 
-        #
+            # Get validation_required
+            validation_required = helper.get_param("validation_required")
+            helper.log_debug("validation_required={}".format(validation_required))
 
-        # if passthrough mode is enabled, this instance will only handle messages that were successfully published or canceled
+            # Get comment
+            comment = helper.get_param("comment")
+            helper.log_debug("comment={}".format(comment))
 
-        if str(mqpassthrough) == "enabled":
+            # Set record_url
+            record_url = str(kv_url) + str(key)
 
-            # get the record age in seconds
-            record_age = int(round(float(time.time()) - float(ctime), 0))
-            helper.log_debug("record_age={}".format(record_age))
+            # Define the url
+            url = "https://" + str(kvstore_instance) + "/services/search/jobs/export"
 
-            # On the master instance, we handle the lifecyle of messages that were successfully published, and their deletion upon retention reached
-            if str(status) in ("success", "canceled", "permanent_failure") and str(kvstore_eviction) == "delete":
-                logmsg = 'record has been successfully published or canceled and kvstore_eviction is delete.'
-                helper.log_debug(logmsg)
-
-                delete_record(helper, key, record_url, headers)
-
-            elif str(status) in ("success", "canceled") and str(kvstore_eviction) == "preserve":
-                if record_age >= kvstore_retention_seconds:
-                    logmsg = 'record has been successfully published or canceled and reached the retention, purging this record.'
-                    helper.log_debug(logmsg)
-
-                    delete_record(helper, key, record_url, headers)
-
-            elif str(status) in ("permanent_failure") and str(kvstore_eviction) == "preserve":
-                logmsg = 'record is in permanent failure status and kvstore_eviction is preserve.'
-                helper.log_debug(logmsg)
-
-                if record_age >= kvstore_retention_seconds:
-                    delete_record(helper, key, record_url, headers)
-                else:
-                    logmsg = 'record with key=' + str(key) + ' with age_seconds=' + str(record_age) \
-                        + ' has not yet reached the max retention of ' + str(kvstore_retention_seconds)
-                    helper.log_info(logmsg)
-
-            return 0
-
-        elif str(mqpassthrough) == "disabled":
+            #
+            # START LOGIC 
+            #
 
             # local service
             service = client.connect(

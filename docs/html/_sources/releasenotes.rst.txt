@@ -1,6 +1,13 @@
 Release notes
 -------------
 
+Version 1.0.28
+==============
+
+- Delegate the MQ backlog KVstore collection old records purge to a seperate scheduled reports relying on a new custom command for better performances and less CPU cycles required on the SHC (custom command: purgebacklog, report: DHL MQ Logs - MQ backlog purge logs)
+- Manage batch: allow to cancel a batch which remains in pending from processing but might have been partially submitted already, better handle canceling a batch in temporary failure (custom command: managebatch)
+- set the schedule_window to auto by default for scheduled reports and alerts on the SHC that can accomodate with the setting with no consequences 
+
 Version 1.0.27
 ==============
 

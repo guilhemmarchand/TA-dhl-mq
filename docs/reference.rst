@@ -17,7 +17,7 @@ DHL MQ messages publishing - relay publishing
 
 **SHC versus HF:**
 
-- SHC: This alert when running on the SHC will maintain the KVstore records, especially it will purge old records when their expiration is reached
+- SHC: This alert does nothing on the SHC, and can be safety disabled
 - HF: This alert performs the submission to IBM MQ
 
 DHL MQ messages publishing - batch failing detected
@@ -52,6 +52,16 @@ DHL MQ HA group - registered consumer is offline
 
 Scheduled reports reference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+DHL MQ maintenance - purge records from the main MQ backlog KVstore collection
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+**This scheduled reports purges the old records from the main MQ backlog KVstore collection according to the KVstore eviction and retention policy.**
+
+**SHC versus HF:**
+
+- SHC: This report runs on the search head layer
+- HF: This report does nothing on the consumers and can be safety disabled if necessary
 
 DHL MQ messages publishing - batch relay publishing for singleline messages
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
